@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -22,15 +23,21 @@ class MaterialsFragment : Fragment() {
         recyclerView = view.findViewById(R.id.materials_list)
         recyclerView.layoutManager = LinearLayoutManager(context)
 
+        // Добавляем разделитель
+        val dividerItemDecoration = DividerItemDecoration(
+            recyclerView.context,
+            LinearLayoutManager.VERTICAL
+        )
+        recyclerView.addItemDecoration(dividerItemDecoration)
+
         val techniques = listOf(
             Technique("Чтение по диагонали"),
             Technique("Зигзагообразное чтение"),
             Technique("Вертикальное чтение"),
-            Technique("Селективное чтение (поиск ключевых слов)"),
+            Technique("Поиск ключевых слов"),
             Technique("Чтение \"блоками\""),
-            Technique("Метрономное чтение"),
             Technique("Периферийное чтение"),
-            Technique("Обратное чтение (регрессия)"),
+            Technique("Обратное чтение"),
             Technique("Метод \"указки\"")
         )
 
@@ -43,8 +50,10 @@ class MaterialsFragment : Fragment() {
     }
 
     private fun onTechniqueClicked(technique: Technique) {
-        // Здесь будет логика перехода к демонстрации техники
-        // Пока просто выведем название техники в лог
-        println("Выбрана техника: ${technique.name}")
+        val detailFragment = TechniqueDetailFragment.newInstance(technique.name)
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, detailFragment)
+            .addToBackStack(null) // Добавляет возможность вернуться назад
+            .commit()
     }
 }

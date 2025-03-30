@@ -2,10 +2,12 @@ package com.example.scorochenie
 
 import android.animation.ValueAnimator
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.BackgroundColorSpan
+import android.text.style.StyleSpan
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -31,6 +33,7 @@ class TechniqueDetailFragment : Fragment() {
     }
 
     private val sampleTexts = listOf(
+        // ... (твой текст остаётся без изменений) ...
         """
         Зелёные растения – единственный вид живых существ, способный самостоятельно производить свою пищу. Растение получают пищу из воды, углекислого газа и минералов почвы, также они используют энергию Солнца. Этот процесс называется фотосинтезом. В результате также выделяется кислород, необходимый для всех живых существ. Животные пользуются пищей, созданной растениями, поедая растения или тех животных, которые питаются этими растениями. Без растений все животные и люди должны были бы умереть. Первые растения представляли собой отдельные клетки, плававшие в океане, покрывавшем всю землю. Постепенно некоторые клетки образовали соединения, каждое с особой задачей. Корень – чтобы удерживать растение на месте; стебель – чтобы обеспечить процесс фотосинтеза и размножение. Водоросли остались простейшими. Когда растения выбрались на землю, им пришлось приспособиться к жизни на суше без поддержки воды. Стебли растений становились толще, и у них развился корень. Первые наземные растения обитали лишь в сырых местах, однако нынешние растения распространены в разных местах: от границ арктических льдов до тропических джунглей. Первыми растениями, распространёнными на новой территории, были лишайники. Они нарастают, словно кора, на обнажённой поверхности скал. Умирая, они сгнивают и превращаются в первый слой почвы. На этом слое почвы вырастают мхи, и их смерть и разложение, в свою очередь, формирует второй слой почвы. Вскоре почвы становится достаточно, чтобы росли папоротники и цветковые растения. Таким образом развивается сообщество растений, обеспечивая пищей животных и образуя единую среду обитания. Ботаникам известно около 380 000 видов растений. Большинство из них можно найти в тропических лесах. Из 250 000 видов цветковых растений 90 000 принадлежат к флоре Центральной и Южной Америки, а ещё 30 000 – к флоре тропической Африки. Далее на север разнообразие растений уменьшается. В Великобритании насчитывается всего 1800 видов. Растения закрепляются практически везде на нашей планете. Однако их благополучию угрожают люди в своих поисках пищи, топлива и пространства для жизни.
         """.trimIndent(),
@@ -42,17 +45,17 @@ class TechniqueDetailFragment : Fragment() {
         """.trimIndent()
     )
 
-    private var fullText: String = "" // Полный текст
-    private var currentPosition = 0 // Текущая позиция в тексте (индекс символа)
-    private var animator: ValueAnimator? = null // Для контроля анимации
-    private var selectedTextIndex = 0 // Индекс выбранного текста
-    private var breakWordIndex = 0 // Индекс текущей точки обрыва
+    private var fullText: String = ""
+    private var currentPosition = 0
+    private var animator: ValueAnimator? = null
+    private var selectedTextIndex = 0
+    private var breakWordIndex = 0
+    private lateinit var guideView: View
 
-    // Точки обрыва для каждого текста (по 3 точки для деления на 4 части)
     private val breakWords = listOf(
-        listOf("и у них", "всего", "жизни."), // Для текста про растения
-        listOf("передатчика,", "тоже"), // Для текста про радио
-        listOf("микроволны.", "атак вражеских") // Для текста про радар
+        listOf("на новой"),
+        listOf("которые поступали в", "290000"),
+        listOf("сигнал.")
     )
 
     override fun onCreateView(
@@ -65,12 +68,25 @@ class TechniqueDetailFragment : Fragment() {
         val titleTextView = view.findViewById<TextView>(R.id.technique_title)
         val descriptionTextView = view.findViewById<TextView>(R.id.technique_description)
         val animationTextView = view.findViewById<TextView>(R.id.animation_text)
+        val startButton = view.findViewById<Button>(R.id.start_button)
         val backButton = view.findViewById<Button>(R.id.back_button)
 
         titleTextView.text = techniqueName
 
         val description = when (techniqueName) {
-            "Чтение по диагонали" -> "Техника быстрого чтения, при которой взгляд движется по диагонали страницы сверху вниз, улавливая ключевые слова и игнорируя второстепенные детали. Подходит для быстрого ознакомления с текстом."
+            "Чтение по диагонали" -> {
+                val text = "Чтение по диагонали — это техника скорочтения, при которой взгляд движется по диагональной линии от верхнего левого угла к нижнему правому, охватывая ключевые слова и фразы. Этот метод помогает быстро выделить основную информацию, не задерживаясь на каждом слове.\n" +
+                        "Чтобы правильно применять эту методику, ведите взгляд по диагонали сверху вниз, не фокусируясь на каждом слове, а замечая ключевые смысловые точки текста.\n" +
+                        "Внимание сосредотачивается на заголовках, терминах, цифрах и выделенных фрагментах, а второстепенные слова и детали игнорируются, что ускоряет процесс чтения и восприятия материала."
+                val spannable = SpannableString(text)
+
+                spannable.setSpan(StyleSpan(Typeface.BOLD), 0, "Чтение по диагонали".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("ведите взгляд по диагонали"), text.indexOf("ведите взгляд по диагонали") + "ведите взгляд по диагонали".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("ключевые смысловые точки"), text.indexOf("ключевые смысловые точки") + "ключевые смысловые точки".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("заголовках, терминах, цифрах и выделенных фрагментах"), text.indexOf("заголовках, терминах, цифрах и выделенных фрагментах") + "заголовках, терминах, цифрах и выделенных фрагментах".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+                spannable
+            }
             "Зигзагообразное чтение" -> "Метод, при котором глаза движутся зигзагом для захвата ключевой информации."
             "Вертикальное чтение" -> "Чтение текста сверху вниз по центру страницы."
             "Поиск ключевых слов" -> "Фокусировка только на ключевых словах и фразах."
@@ -82,29 +98,36 @@ class TechniqueDetailFragment : Fragment() {
         }
         descriptionTextView.text = description
 
+        guideView = View(requireContext()).apply {
+            layoutParams = ViewGroup.LayoutParams(2, animationTextView.height)
+            setBackgroundColor(Color.RED)
+            rotation = 45f
+            visibility = View.INVISIBLE
+        }
+
         if (techniqueName == "Чтение по диагонали") {
-            selectedTextIndex = Random.nextInt(sampleTexts.size)
-            fullText = sampleTexts[selectedTextIndex].replace("\n", " ") // Убираем все \n
-            Log.d("TechniqueDetail", "Selected text index: $selectedTextIndex, Full text: '$fullText'")
-            currentPosition = 0
-            breakWordIndex = 0 // Сбрасываем индекс точек обрыва
-            val guideView = View(requireContext()).apply {
-                layoutParams = ViewGroup.LayoutParams(2, animationTextView.height) // Линия
-                setBackgroundColor(Color.RED)
-                rotation = 45f
-                visibility = View.INVISIBLE
-            }
-            (view as ViewGroup).addView(guideView)
+            animationTextView.visibility = View.GONE
 
-            // Устанавливаем выравнивание текста вверх
-            animationTextView.gravity = android.view.Gravity.TOP
+            startButton.setOnClickListener {
+                descriptionTextView.visibility = View.GONE
+                startButton.visibility = View.GONE
+                animationTextView.visibility = View.VISIBLE
+                (view as ViewGroup).addView(guideView)
 
-            // Отложенная загрузка текста после отрисовки
-            animationTextView.post {
-                showNextTextPart(animationTextView, guideView)
+                selectedTextIndex = Random.nextInt(sampleTexts.size)
+                fullText = sampleTexts[selectedTextIndex].replace("\n", " ")
+                Log.d("TechniqueDetail", "Selected text index: $selectedTextIndex, Full text: '$fullText'")
+                currentPosition = 0
+                breakWordIndex = 0
+
+                animationTextView.gravity = android.view.Gravity.TOP
+                animationTextView.post {
+                    showNextTextPart(animationTextView, guideView)
+                }
             }
         } else {
             animationTextView.text = "Анимация для этой техники в разработке."
+            startButton.visibility = View.GONE
         }
 
         backButton.setOnClickListener {
@@ -116,50 +139,58 @@ class TechniqueDetailFragment : Fragment() {
 
     private fun showNextTextPart(textView: TextView, guideView: View) {
         if (currentPosition >= fullText.length) {
-            guideView.visibility = View.INVISIBLE // Скрываем гид, текст остаётся
+            guideView.visibility = View.INVISIBLE
             Log.d("TechniqueDetail", "Text ended, stopping animation")
-            animator?.cancel() // Останавливаем анимацию, если она активна
+            animator?.cancel()
+
+            val currentText = textView.text.toString()
+            textView.text = currentText // Убираем подсветку, оставляя последнюю часть
             return
         }
 
-        // Выбираем текущий список точек обрыва для выбранного текста
         val currentBreakWords = breakWords[selectedTextIndex]
         val breakWord = if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
-
-        // Находим позицию слова, на котором нужно оборвать текст
         val breakPosition = if (breakWord.isNotEmpty()) {
             val index = fullText.indexOf(breakWord, currentPosition)
             if (index == -1) fullText.length else index + breakWord.length
         } else {
-            // Если точки обрыва закончились, берём остаток текста
             fullText.length
         }
 
-        // Формируем текущую часть текста
         val partText = fullText.substring(currentPosition, breakPosition).trim()
         Log.d("TechniqueDetail", "Showing part: startPosition=$currentPosition, endPosition=$breakPosition, breakWord='$breakWord', text='$partText'")
 
         textView.text = partText
-        startDiagonalAnimation(textView, guideView, breakPosition)
+        startDiagonalAnimation(textView, guideView, breakPosition, partText)
     }
 
-    private fun startDiagonalAnimation(textView: TextView, guideView: View, newPosition: Int) {
+    private fun startDiagonalAnimation(textView: TextView, guideView: View, newPosition: Int, partText: String) {
         guideView.visibility = View.VISIBLE
-        animator?.cancel() // Останавливаем старую анимацию, если она есть
+        animator?.cancel()
+
+        // Вычисляем количество слов в текущей части текста
+        val wordCount = partText.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
+        // Устанавливаем скорость: 200 мс на слово (можно настроить)
+        val durationPerWord = 40L // 200 миллисекунд на слово
+        val totalDuration = wordCount * durationPerWord
+
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 5000 // 5 секунд на часть
-            var lastLine = -1 // Отслеживаем последнюю подсвеченную строку
+            duration = totalDuration // Динамическая длительность
+            var lastLine = -1
 
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
                 val width = textView.width.toFloat()
                 val visibleHeight = textView.height.toFloat()
 
-                // Чёткая диагональ
-                val x = fraction * width
-                val y = fraction * visibleHeight
+                val layout = textView.layout
+                val totalLines = layout?.lineCount ?: 1
+                val lastLineTop = if (totalLines > 1) layout.getLineTop(totalLines - 1) else visibleHeight
+                val heightExcludingLastLine = if (totalLines > 1) lastLineTop.toFloat() else visibleHeight
 
-                // Позиционируем линию-гид
+                val y = fraction * heightExcludingLastLine
+                val x = fraction * width
+
                 guideView.translationX = x - (guideView.width / 2) + textView.left
                 guideView.translationY = textView.top.toFloat()
 
@@ -168,8 +199,8 @@ class TechniqueDetailFragment : Fragment() {
             }
             addListener(object : android.animation.AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: android.animation.Animator) {
-                    currentPosition = newPosition // Обновляем позицию для следующей части
-                    breakWordIndex++ // Переходим к следующей точке обрыва
+                    currentPosition = newPosition
+                    breakWordIndex++
                     Log.d("TechniqueDetail", "Animation ended, new currentPosition=$currentPosition, breakWordIndex=$breakWordIndex")
                     showNextTextPart(textView, guideView)
                 }
@@ -182,20 +213,22 @@ class TechniqueDetailFragment : Fragment() {
         val layout = textView.layout ?: return -1
         val visibleHeight = textView.height.toFloat()
 
-        // Ограничиваем y видимой областью
         val adjustedY = y.coerceIn(0f, visibleHeight)
         val currentLine = layout.getLineForVertical(adjustedY.toInt())
 
-        // Подсвечиваем только если перешли на новую строку
+        val totalLines = layout.lineCount
+        if (currentLine == totalLines - 1) {
+            return currentLine
+        }
+
         if (currentLine <= lastLine) return currentLine
 
         val diagonalSlope = visibleHeight / textView.width.toFloat()
-        val expectedX = adjustedY / diagonalSlope // Ожидаемая x на диагонали
+        val expectedX = adjustedY / diagonalSlope
 
         var closestOffset = -1
         var minDistance = Float.MAX_VALUE
 
-        // Ищем ближайшее слово к диагонали в текущей строке
         for (offset in layout.getLineStart(currentLine) until layout.getLineEnd(currentLine)) {
             if (textView.text[offset].isWhitespace()) continue
 
@@ -234,6 +267,6 @@ class TechniqueDetailFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        animator?.cancel() // Очистка анимации при уничтожении фрагмента
+        animator?.cancel()
     }
 }

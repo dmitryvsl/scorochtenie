@@ -16,14 +16,13 @@ android:textColor="?attr/colorOnBackground"
 android:layout_gravity="center_horizontal"
 android:layout_marginBottom="16dp" />
 
-    <!-- Прогресс-бар -->
-<com.google.android.material.progressindicator.LinearProgressIndicator
-android:layout_width="match_parent"
-android:layout_height="wrap_content"
-android:progress="75"
-app:indicatorColor="?attr/colorSecondary"
-app:trackColor="?attr/colorPrimaryVariant"
-android:layout_marginBottom="16dp" />
+<!--<com.google.android.material.progressindicator.LinearProgressIndicator-->
+<!--android:layout_width="match_parent"-->
+<!--android:layout_height="wrap_content"-->
+<!--android:progress="75"-->
+<!--app:indicatorColor="?attr/colorSecondary"-->
+<!--app:trackColor="?attr/colorPrimaryVariant"-->
+<!--android:layout_marginBottom="16dp" />-->
 
 <TextView
 android:layout_width="wrap_content"

@@ -15,7 +15,6 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="16dp" />
 
-    <!-- Список упражнений -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/exercises_list"
         android:layout_width="match_parent"

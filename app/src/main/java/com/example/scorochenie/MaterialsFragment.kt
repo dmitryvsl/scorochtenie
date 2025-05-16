@@ -32,7 +32,6 @@ class MaterialsFragment : Fragment() {
 
         val techniques = listOf(
             Technique("Чтение по диагонали"),
-            Technique("Зигзагообразное чтение"),
             Technique("Вертикальное чтение"),
             Technique("Поиск ключевых слов"),
             Technique("Чтение \"блоками\""),

@@ -66,12 +66,13 @@ class TechniqueDetailFragment : Fragment() {
         guideView = View(requireContext()).apply {
             layoutParams = ViewGroup.LayoutParams(2, animationTextView.height)
             setBackgroundColor(Color.RED)
-            rotation = 45f
+            rotation = if (technique is PointerMethodTechnique) 0f else 45f // Без наклона для метода указки
             visibility = View.INVISIBLE
         }
 
-        if (technique is DiagonalReadingTechnique) {
+        if (technique is DiagonalReadingTechnique || technique is KeywordSearchTechnique || technique is ReverseReadingTechnique || technique is PointerMethodTechnique) {
             animationTextView.visibility = View.GONE
+            startButton.visibility = View.VISIBLE
             startButton.setOnClickListener {
                 descriptionTextView.visibility = View.GONE
                 startButton.visibility = View.GONE
@@ -84,7 +85,6 @@ class TechniqueDetailFragment : Fragment() {
                 ) {
                     // Callback при завершении анимации
                     guideView.visibility = View.INVISIBLE
-                    animationTextView.text = "Анимация завершена"
                 }
             }
         } else {

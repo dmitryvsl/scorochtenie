@@ -35,10 +35,8 @@ class TechniqueDetailFragment : Fragment() {
         val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME)
         technique = when (techniqueName) {
             "Чтение по диагонали" -> DiagonalReadingTechnique()
-            "Вертикальное чтение" -> VerticalReadingTechnique()
             "Поиск ключевых слов" -> KeywordSearchTechnique()
             "Чтение \"блоками\"" -> BlockReadingTechnique()
-            "Периферийное чтение" -> PeripheralReadingTechnique()
             "Обратное чтение" -> ReverseReadingTechnique()
             "Метод \"указки\"" -> PointerMethodTechnique()
             else -> object : ReadingTechnique(techniqueName ?: "Неизвестная техника") {

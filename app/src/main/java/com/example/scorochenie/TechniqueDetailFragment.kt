@@ -37,7 +37,8 @@ class TechniqueDetailFragment : Fragment() {
             "Чтение по диагонали" -> DiagonalReadingTechnique()
             "Поиск ключевых слов" -> KeywordSearchTechnique()
             "Чтение \"блоками\"" -> BlockReadingTechnique()
-            "Обратное чтение" -> ReverseReadingTechnique()
+            "Предложения наоборот" -> SentenceReverseTechnique()
+            "Слова наоборот" -> WordReverseTechnique()
             "Метод \"указки\"" -> PointerMethodTechnique()
             else -> object : ReadingTechnique(techniqueName ?: "Неизвестная техника") {
                 override fun startAnimation(
@@ -68,7 +69,10 @@ class TechniqueDetailFragment : Fragment() {
             visibility = View.INVISIBLE
         }
 
-        if (technique is DiagonalReadingTechnique || technique is KeywordSearchTechnique || technique is ReverseReadingTechnique || technique is PointerMethodTechnique) {
+        if (technique is DiagonalReadingTechnique || technique is KeywordSearchTechnique ||
+            technique is PointerMethodTechnique || technique is SentenceReverseTechnique ||
+            technique is WordReverseTechnique
+        ) {
             animationTextView.visibility = View.GONE
             startButton.visibility = View.VISIBLE
             startButton.setOnClickListener {

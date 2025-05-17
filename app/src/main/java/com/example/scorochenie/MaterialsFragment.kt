@@ -34,7 +34,8 @@ class MaterialsFragment : Fragment() {
             Technique("Чтение по диагонали"),
             Technique("Поиск ключевых слов"),
             Technique("Чтение \"блоками\""),
-            Technique("Обратное чтение"),
+            Technique("Предложения наоборот"),
+            Technique("Слова наоборот"),
             Technique("Метод \"указки\"")
         )
 

@@ -233,7 +233,7 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
         val lineY = layout.getLineTop(startLine).toFloat()
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 50L
+            duration = 300L
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
                 val currentX = startX + (endX - startX) * fraction

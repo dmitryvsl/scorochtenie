@@ -22,15 +22,13 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
 
     override val description: SpannableString
         get() {
-            val text = "Чтение по диагонали — это техника скорочтения, при которой взгляд движется по диагональной линии от верхнего левого угла к нижнему правому, охватывая ключевые слова и фразы. Этот метод помогает быстро выделить основную информацию, не задерживаясь на каждом слове.\n" +
-                    "Чтобы правильно применять эту методику, ведите взгляд по диагонали сверху вниз, не фокусируясь на каждом слове, а замечая ключевые смысловые точки текста.\n" +
-                    "Внимание сосредотачивается на заголовках, терминах, цифрах и выделенных фрагментах, а второстепенные слова и детали игнорируются, что ускоряет процесс чтения и восприятия материала."
+            val text = "Чтение по диагонали — это способ быстрого чтения, при котором взгляд скользит по диагональной линии от верхнего левого угла к нижнему правому. В процессе внимания уделяется основным смысловым элементам — таким как заголовки, числа и важные фразы — без подробной проработки каждого слова. Такой подход позволяет быстро уловить суть прочитанного.\n" +
+                    "Чтобы правильно применять эту методику, ведите взгляд по диагонали сверху вниз, не фокусируясь на каждом слове, а замечая ключевые смысловые точки текста."
             val spannable = SpannableString(text)
 
             spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("ведите взгляд по диагонали"), text.indexOf("ведите взгляд по диагонали") + "ведите взгляд по диагонали".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("ключевые смысловые точки"), text.indexOf("ключевые смысловые точки") + "ключевые смысловые точки".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("заголовках, терминах, цифрах и выделенных фрагментах"), text.indexOf("заголовках, терминах, цифрах и выделенных фрагментах") + "заголовках, терминах, цифрах и выделенных фрагментах".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
 
             return spannable
         }
@@ -67,6 +65,8 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
             // Не скрываем текст после завершения анимации
             Log.d("DiagonalReading", "Text ended, stopping animation")
             animator?.cancel()
+            // Очищаем выделение перед завершением
+            clearHighlight(textView)
             onAnimationEnd()
             return
         }
@@ -135,6 +135,8 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
             }
             addListener(
                 onEnd = {
+                    // Очищаем выделение перед переходом к следующей части
+                    clearHighlight(textView)
                     currentPosition = newPosition
                     breakWordIndex++
                     Log.d("DiagonalReading", "Animation ended, new currentPosition=$currentPosition, breakWordIndex=$breakWordIndex")
@@ -188,7 +190,10 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
             while (end < text.length && !text[end].isWhitespace()) end++
 
             val spannable = SpannableString(text)
-            spannable.removeSpan(BackgroundColorSpan(Color.YELLOW))
+            val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+            for (span in existingSpans) {
+                spannable.removeSpan(span)
+            }
             spannable.setSpan(
                 BackgroundColorSpan(Color.YELLOW),
                 start,
@@ -199,5 +204,16 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         }
 
         return currentLine
+    }
+
+    private fun clearHighlight(textView: TextView) {
+        val text = textView.text.toString()
+        val spannable = SpannableString(text)
+        val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+        for (span in existingSpans) {
+            spannable.removeSpan(span)
+        }
+        textView.text = spannable
+        Log.d("DiagonalReading", "Cleared highlight from text")
     }
 }

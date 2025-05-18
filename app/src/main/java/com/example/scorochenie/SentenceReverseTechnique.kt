@@ -88,14 +88,28 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         val positions = mutableListOf<Int>()
         positions.add(0)
         var currentPos = 0
+        val sentenceRegex = Regex("([^.!?]+[.!?])")
+        val sentenceMatches = sentenceRegex.findAll(text).toList()
+        val sentenceEndPositions = sentenceMatches.map { it.range.endInclusive + 1 }
+
         breakWords.forEach { breakWord ->
-            val index = text.indexOf(breakWord, currentPos)
-            if (index != -1) {
-                positions.add(index + breakWord.length)
-                currentPos = index + breakWord.length
+            val breakIndex = text.indexOf(breakWord, currentPos)
+            if (breakIndex != -1) {
+                // Найти ближайший конец предложения после breakIndex
+                val nextSentenceEnd = sentenceEndPositions.find { it > breakIndex } ?: text.length
+                positions.add(nextSentenceEnd)
+                currentPos = nextSentenceEnd
+                Log.d("SentenceReverse", "Break word '$breakWord' at $breakIndex, adjusted to sentence end at $nextSentenceEnd")
             }
         }
-        return positions
+
+        // Если последняя позиция не конец текста, добавить конец текста
+        if (positions.last() < text.length) {
+            positions.add(text.length)
+        }
+
+        // Удалить дубликаты и отсортировать
+        return positions.distinct().sorted()
     }
 
     private fun showNextTextPart(
@@ -113,15 +127,9 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         }
 
         val currentBreakWords = reverseBreakWords[selectedTextIndex]
-        val breakWord = if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
-        val breakPosition = if (breakWord.isNotEmpty() && !isAnimatingNextPage && !isReturningToFirstPage) {
-            val index = fullText.indexOf(breakWord, currentPosition)
-            if (index == -1) {
-                Log.e("SentenceReverse", "Break word '$breakWord' not found from position $currentPosition")
-                fullText.length
-            } else {
-                index + breakWord.length
-            }
+        val nextPageIndex = breakWordIndex + 1
+        val breakPosition = if (nextPageIndex < pagePositions.size) {
+            pagePositions[nextPageIndex]
         } else {
             fullText.length
         }
@@ -150,7 +158,7 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
             currentWordIndexInSentence = if (currentSentence.isNullOrEmpty()) -1 else currentSentence.size - 1
         }
 
-        Log.d("SentenceReverse", "Showing part: startPosition=$currentPosition, endPosition=$breakPosition, breakWord='$breakWord', text='$currentPartText', isAnimatingNextPage=$isAnimatingNextPage, isReturningToFirstPage=$isReturningToFirstPage")
+        Log.d("SentenceReverse", "Showing part: startPosition=$currentPosition, endPosition=$breakPosition, text='$currentPartText', isAnimatingNextPage=$isAnimatingNextPage, isReturningToFirstPage=$isReturningToFirstPage")
         Log.d("SentenceReverse", "Previous parts: ${previousParts.joinToString(" | ")}")
         Log.d("SentenceReverse", "Sentences: ${sentences.map { it.joinToString(" ") }}")
         Log.d("SentenceReverse", "Sentence start indices: $sentenceStartIndices")
@@ -329,49 +337,16 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
 
         val currentSentence = sentences.getOrNull(currentSentenceIndex)
         if (currentSentence == null || currentSentence.isEmpty() || currentWordIndexInSentence < 0) {
-            Log.d("SentenceReverse", "Checking sentence end: currentSentence=${currentSentence?.joinToString(" ")}, currentWordIndexInSentence=$currentWordIndexInSentence, isAnimatingNextPage=$isAnimatingNextPage")
-            if (isAnimatingNextPage && currentWordIndexInSentence < 0) {
-                val allWordsRead = currentFullSentenceWords.all { word ->
-                    firstPageWordsRead.contains(word) || currentSentence?.contains(word) == true
-                }
-                if (allWordsRead || currentFullSentenceWords.isEmpty()) {
-                    isAnimatingNextPage = false
-                    isReturningToFirstPage = true
-                    breakWordIndex = returnToPageIndex
-                    currentPosition = pagePositions.getOrNull(breakWordIndex) ?: currentPosition
-                    currentSentenceIndex = returnToSentenceIndex
-                    Log.d("SentenceReverse", "Split sentence completed, returning to page $breakWordIndex, position $currentPosition, sentence $currentSentenceIndex, sentenceText=${sentences.getOrNull(currentSentenceIndex)?.joinToString(" ")}, firstPageWordsRead=$firstPageWordsRead")
-                    showNextTextPart(textView, guideView, onAnimationEnd)
-                    return
-                } else {
-                    Log.w("SentenceReverse", "Not all words read, continuing on current page")
-                }
-            }
-
-            if (currentWordIndexInSentence < 0 && isSentenceSplitAcrossNextPage()) {
-                Log.d("SentenceReverse", "Sentence split detected, moving to next page")
-                animateSplitSentence(textView, guideView, onAnimationEnd)
-                return
-            }
-
+            Log.d("SentenceReverse", "No valid sentence or word index, moving to next sentence")
             currentSentenceIndex++
             val nextSentence = sentences.getOrNull(currentSentenceIndex)
             currentWordIndexInSentence = if (nextSentence.isNullOrEmpty()) -1 else nextSentence.size - 1
-            if (!isAnimatingNextPage && currentFullSentenceWords.isEmpty()) {
+            if (!isAnimatingNextPage) {
                 currentFullSentenceWords = emptyList()
                 firstPageWordsRead = emptyList()
             }
             Log.d("SentenceReverse", "Moving to next sentence: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, nextSentence=${nextSentence?.joinToString(" ")}")
-            if (nextSentence != null && currentWordIndexInSentence >= 0) {
-                Log.d("SentenceReverse", "Starting with word: '${nextSentence[currentWordIndexInSentence]}' at position $currentWordIndexInSentence")
-            }
             textView.post { animateNextWord(textView, guideView, onAnimationEnd) }
-            return
-        }
-
-        if (currentWordIndexInSentence == 0 && isSentenceSplitAcrossNextPage()) {
-            Log.d("SentenceReverse", "Reached first word of sentence, checking for split to next page")
-            animateSplitSentence(textView, guideView, onAnimationEnd)
             return
         }
 
@@ -386,120 +361,6 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         textView.post {
             highlightWord(textView)
             startWordAnimation(textView, guideView, onAnimationEnd)
-        }
-    }
-
-    private fun isSentenceSplitAcrossNextPage(): Boolean {
-        if (breakWordIndex >= pagePositions.size - 1) {
-            Log.d("SentenceReverse", "No split: on last page")
-            return false
-        }
-
-        val sentenceStartInPart = sentenceStartIndices.getOrNull(currentSentenceIndex) ?: 0
-        currentSentenceStartIndexInFullText = currentPosition + sentenceStartInPart
-        val nextPageStartPosition = pagePositions.getOrNull(breakWordIndex + 1) ?: fullText.length
-
-        val sentenceRegex = Regex("([^.!?()]+[.!?])")
-        val allSentences = sentenceRegex.findAll(fullText).toList()
-        val currentSentenceMatch = allSentences.find { match ->
-            match.range.start <= currentSentenceStartIndexInFullText && currentSentenceStartIndexInFullText <= match.range.endInclusive
-        }
-
-        if (currentSentenceMatch == null) {
-            Log.w("SentenceReverse", "No matching sentence found for index $currentSentenceStartIndexInFullText")
-            return false
-        }
-
-        val wordRegex = Regex("""\b\w+\b""")
-        currentFullSentenceWords = wordRegex.findAll(currentSentenceMatch.value)
-            .map { it.value }
-            .filter { it.isNotEmpty() }
-            .toList()
-        Log.d("SentenceReverse", "Set currentFullSentenceWords: $currentFullSentenceWords")
-
-        val isSplit = currentSentenceMatch.range.endInclusive >= nextPageStartPosition
-        Log.d("SentenceReverse", "Checking split: currentSentenceStartIndexInFullText=$currentSentenceStartIndexInFullText, nextPageStartPosition=$nextPageStartPosition, currentSentence='${currentSentenceMatch.value}', isSplit=$isSplit")
-        return isSplit
-    }
-
-    private fun animateSplitSentence(
-        textView: TextView,
-        guideView: View,
-        onAnimationEnd: () -> Unit
-    ) {
-        if (breakWordIndex >= pagePositions.size - 1) {
-            Log.d("SentenceReverse", "No next page to animate split sentence")
-            currentSentenceIndex++
-            val nextSentence = sentences.getOrNull(currentSentenceIndex)
-            currentWordIndexInSentence = if (nextSentence.isNullOrEmpty()) -1 else nextSentence.size - 1
-            currentFullSentenceWords = emptyList()
-            firstPageWordsRead = emptyList()
-            Log.d("SentenceReverse", "No next page, moving to next sentence: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence")
-            textView.post { animateNextWord(textView, guideView, onAnimationEnd) }
-            return
-        }
-
-        returnToPageIndex = breakWordIndex
-        returnToSentenceIndex = currentSentenceIndex
-        isAnimatingNextPage = true
-        breakWordIndex++
-        currentPosition = pagePositions.getOrNull(breakWordIndex) ?: fullText.length
-
-        val currentBreakWords = reverseBreakWords[selectedTextIndex]
-        val breakWord = if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
-        val breakPosition = if (breakWord.isNotEmpty()) {
-            val index = fullText.indexOf(breakWord, currentPosition)
-            if (index == -1) fullText.length else index + breakWord.length
-        } else {
-            fullText.length
-        }
-        currentPartText = fullText.substring(currentPosition, breakPosition.coerceAtMost(fullText.length)).trim()
-        if (breakWordIndex >= previousParts.size) {
-            previousParts.add(currentPartText)
-        } else {
-            previousParts[breakWordIndex] = currentPartText
-        }
-
-        sentences = parseSentences(currentPartText)
-        sentenceStartIndices = calculateSentenceStartIndices(currentPartText, sentences)
-
-        val nextPageWords = currentFullSentenceWords.filter { word ->
-            val wordIndex = fullText.indexOf(word, currentPosition)
-            wordIndex >= currentPosition && wordIndex < breakPosition
-        }
-
-        if (nextPageWords.isEmpty()) {
-            Log.e("SentenceReverse", "No words from sentence '$currentFullSentenceWords' found on next page: $currentPartText")
-            isAnimatingNextPage = false
-            isReturningToFirstPage = true
-            breakWordIndex = returnToPageIndex
-            currentPosition = pagePositions.getOrNull(breakWordIndex) ?: currentPosition
-            currentSentenceIndex = returnToSentenceIndex
-            Log.d("SentenceReverse", "No matching words, returning to page $breakWordIndex, position $currentPosition, sentence $currentSentenceIndex")
-            showNextTextPart(textView, guideView, onAnimationEnd)
-            return
-        }
-
-        currentSentenceIndex = sentences.indexOfFirst { sentence ->
-            sentence.any { word -> nextPageWords.contains(word) }
-        }
-
-        if (currentSentenceIndex < 0 || sentences.getOrNull(currentSentenceIndex)?.isEmpty() != false) {
-            Log.w("SentenceReverse", "No matching sentence found in next part: $currentPartText, nextPageWords=$nextPageWords")
-            currentSentenceIndex = 0
-            val firstSentence = sentences.getOrNull(currentSentenceIndex)
-            currentWordIndexInSentence = if (firstSentence.isNullOrEmpty()) -1 else firstSentence.size - 1
-            Log.d("SentenceReverse", "Falling back to first sentence: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence")
-        } else {
-            currentWordIndexInSentence = sentences[currentSentenceIndex].size - 1
-        }
-
-        textView.text = currentPartText
-        Log.d("SentenceReverse", "Moved to next page for split sentence: fullSentenceWords='$currentFullSentenceWords', nextPageText='$currentPartText', nextPageWords=$nextPageWords, firstPageWordsRead=$firstPageWordsRead")
-        Log.d("SentenceReverse", "Starting with word: '${sentences.getOrNull(currentSentenceIndex)?.getOrNull(currentWordIndexInSentence) ?: "none"}' at position $currentWordIndexInSentence, sentence=${sentences.getOrNull(currentSentenceIndex)?.joinToString(" ")}")
-
-        textView.post {
-            animateNextWord(textView, guideView, onAnimationEnd)
         }
     }
 
@@ -641,7 +502,7 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         Log.d("SentenceReverse", "Animating word: '$word' at position $currentWordIndexInSentence, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine")
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 300L
+            duration = 5L
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
                 val currentX = startX + (endX - startX) * fraction

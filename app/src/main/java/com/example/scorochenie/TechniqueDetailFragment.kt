@@ -69,7 +69,7 @@ class TechniqueDetailFragment : Fragment() {
             visibility = View.INVISIBLE
         }
 
-        if (technique is DiagonalReadingTechnique || technique is KeywordSearchTechnique ||
+        if (technique is DiagonalReadingTechnique || technique is KeywordSearchTechnique || technique is BlockReadingTechnique ||
             technique is PointerMethodTechnique || technique is SentenceReverseTechnique ||
             technique is WordReverseTechnique
         ) {

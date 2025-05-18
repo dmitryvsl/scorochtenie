@@ -15,20 +15,20 @@
 
         <Button
             android:id="@+id/back_button"
-            android:layout_width="wrap_content"
+            android:layout_width="65dp"
             android:layout_height="wrap_content"
-            android:text="Назад"
-            android:textSize="16sp"
+            android:text="&lt;"
             android:textColor="?attr/colorOnSecondary"
-            android:layout_marginEnd="16dp"/>
+            android:textSize="18sp"
+            android:layout_marginEnd="15dp"/>
 
         <TextView
             android:id="@+id/technique_title"
-            android:layout_width="0dp"
+            android:layout_width="289dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="20sp"
-            android:textColor="?attr/colorOnBackground" />
+            android:textColor="?attr/colorOnBackground"
+            android:textSize="20sp" />
 
     </LinearLayout>
 

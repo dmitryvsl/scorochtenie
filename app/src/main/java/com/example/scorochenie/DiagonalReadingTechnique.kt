@@ -107,7 +107,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         animator?.cancel()
 
         val wordCount = partText.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
-        val durationPerWord = 40L
+        val durationPerWord = 100L
         val totalDuration = wordCount * durationPerWord
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {

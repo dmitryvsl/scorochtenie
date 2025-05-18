@@ -8,6 +8,7 @@ import android.text.style.BackgroundColorSpan
 import android.text.style.StyleSpan
 import android.util.Log
 import android.view.View
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.animation.addListener
 import kotlin.random.Random
@@ -20,6 +21,8 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
     private var animator: ValueAnimator? = null
     private var currentPartWords: List<String> = emptyList()
     private var currentPartText: String = ""
+    private var scrollView: ScrollView? = null
+    private var lastScrollY: Int = 0
 
     override val description: SpannableString
         get() {
@@ -41,6 +44,15 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
         selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
         fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
         currentWordIndex = 0
+        lastScrollY = 0
+
+        scrollView = textView.parent as? ScrollView
+        Log.d("PointerMethod", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
+        if (scrollView == null) {
+            Log.e("PointerMethod", "TextView is not inside a ScrollView, scrolling will not work")
+        } else {
+            Log.d("PointerMethod", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
+        }
 
         textView.gravity = android.view.Gravity.TOP
         textView.isSingleLine = false
@@ -122,25 +134,90 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
         guideView.visibility = View.VISIBLE
         animator?.cancel()
 
-        val layout = textView.layout ?: return
+        val layout = textView.layout
+        if (layout == null) {
+            Log.e("PointerMethod", "TextView layout is null")
+            textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
+            return
+        }
+
         val wordStartIndex = getWordStartIndex(currentWordIndex, currentPartText)
         val wordEndIndex = wordStartIndex + currentPartWords[currentWordIndex].length
 
+        if (wordStartIndex < 0 || wordStartIndex >= currentPartText.length) {
+            Log.e("PointerMethod", "Invalid wordStartIndex: $wordStartIndex")
+            currentWordIndex++
+            animateNextWord(textView, guideView, onAnimationEnd)
+            return
+        }
+
         val startLine = layout.getLineForOffset(wordStartIndex)
         val endLine = layout.getLineForOffset(wordEndIndex)
-
         val startX = layout.getPrimaryHorizontal(wordStartIndex)
-        val endX = layout.getPrimaryHorizontal(wordEndIndex)
-        val lineY = layout.getLineTop(startLine).toFloat()
+        var endX = layout.getPrimaryHorizontal(wordEndIndex)
+        if (endX == startX) {
+            endX = startX + layout.getPrimaryHorizontal(wordStartIndex + 1)
+        }
+        val lineTop = layout.getLineTop(startLine).toFloat()
+        val lineBottom = layout.getLineBottom(startLine).toFloat()
+        val lineY = (lineTop + lineBottom) / 2 // Середина строки для guideView
+
+        // Прокрутка ScrollView
+        scrollView?.let { sv ->
+            sv.post {
+                val scrollViewHeight = sv.height
+                val currentScrollY = sv.scrollY
+                val lineTopPosition = layout.getLineTop(startLine)
+                val lineBottomPosition = layout.getLineBottom(startLine)
+
+                // Определяем видимую область (верхняя треть экрана)
+                val visibleTop = currentScrollY
+                val visibleBottom = currentScrollY + scrollViewHeight * 2 / 3
+
+                // Прокручиваем, если строка не полностью видна
+                if (lineTopPosition < visibleTop || lineBottomPosition > visibleBottom) {
+                    // Цель: поставить строку в верхнюю треть экрана
+                    val targetScrollY = (lineTopPosition - scrollViewHeight / 3).coerceAtLeast(0).toInt()
+                    if (targetScrollY != lastScrollY) {
+                        Log.d("PointerMethod", "Attempting scroll for line $startLine, word='${currentPartWords[currentWordIndex]}'")
+                        Log.d("PointerMethod", "Scroll parameters: line=$startLine, word='${currentPartWords[currentWordIndex]}', lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
+                        // Плавная прокрутка
+                        ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
+                            duration = 500L // Длительность анимации прокрутки
+                            addUpdateListener { animation ->
+                                val value = animation.animatedValue as Int
+                                sv.scrollTo(0, value)
+                            }
+                            addListener(
+                                onEnd = {
+                                    lastScrollY = targetScrollY
+                                    Log.d("PointerMethod", "Scrolled to line $startLine, targetScrollY=$targetScrollY, currentScrollY=${sv.scrollY}")
+                                }
+                            )
+                            start()
+                        }
+                    } else {
+                        Log.d("PointerMethod", "No scroll needed, already at target: line=$startLine, word='${currentPartWords[currentWordIndex]}', targetScrollY=$targetScrollY")
+                    }
+                } else {
+                    Log.d("PointerMethod", "No scroll needed, line $startLine is visible, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, visibleTop=$visibleTop, visibleBottom=$visibleBottom")
+                }
+
+                sv.postDelayed({
+                    Log.d("PointerMethod", "After scroll check, currentScrollY=${sv.scrollY}, textViewHeight=${textView.height}, scrollViewHeight=$scrollViewHeight")
+                }, 100)
+            }
+        } ?: Log.e("PointerMethod", "ScrollView is null, cannot scroll to line $startLine for word '${currentPartWords[currentWordIndex]}'")
+
+        Log.d("PointerMethod", "Animating word: '${currentPartWords[currentWordIndex]}' at position $currentWordIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine")
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = 300L
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
                 val currentX = startX + (endX - startX) * fraction
-
                 guideView.translationX = currentX - (guideView.width / 2) + textView.left
-                guideView.translationY = lineY + textView.top.toFloat()
+                guideView.translationY = lineY + textView.top.toFloat() - (scrollView?.scrollY?.toFloat() ?: 0f)
             }
             addListener(
                 onEnd = {

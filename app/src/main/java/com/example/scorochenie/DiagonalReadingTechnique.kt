@@ -46,22 +46,28 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         breakWordIndex = 0
 
         textView.gravity = android.view.Gravity.TOP
+        textView.isSingleLine = false
+        textView.maxLines = Int.MAX_VALUE
+
         textView.post {
-            showNextTextPart(textView, guideView)
+            Log.d("DiagonalReading", "TextView size after post: ${textView.width}x${textView.height}")
+            val parent = textView.parent as View
+            Log.d("DiagonalReading", "FrameLayout size: ${parent.width}x${parent.height}")
+            showNextTextPart(textView, guideView, onAnimationEnd)
         }
     }
 
     private fun showNextTextPart(
         textView: TextView,
-        guideView: View
+        guideView: View,
+        onAnimationEnd: () -> Unit
     ) {
         if (currentPosition >= fullText.length) {
             guideView.visibility = View.INVISIBLE
+            // Не скрываем текст после завершения анимации
             Log.d("DiagonalReading", "Text ended, stopping animation")
             animator?.cancel()
-
-            val currentText = textView.text.toString()
-            textView.text = currentText
+            onAnimationEnd()
             return
         }
 
@@ -78,10 +84,25 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         Log.d("DiagonalReading", "Showing part: startPosition=$currentPosition, endPosition=$breakPosition, breakWord='$breakWord', text='$partText'")
 
         textView.text = partText
-        startDiagonalAnimation(textView, guideView, breakPosition, partText)
+        textView.visibility = View.VISIBLE
+
+        textView.post {
+            Log.d("DiagonalReading", "TextView size after text set: ${textView.width}x${textView.height}")
+            val parent = textView.parent as View
+            Log.d("DiagonalReading", "FrameLayout size after text set: ${parent.width}x${parent.height}")
+            val diagonalLineView = parent.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
+            diagonalLineView.requestLayout()
+            startDiagonalAnimation(textView, guideView, breakPosition, partText, onAnimationEnd)
+        }
     }
 
-    private fun startDiagonalAnimation(textView: TextView, guideView: View, newPosition: Int, partText: String) {
+    private fun startDiagonalAnimation(
+        textView: TextView,
+        guideView: View,
+        newPosition: Int,
+        partText: String,
+        onAnimationEnd: () -> Unit
+    ) {
         guideView.visibility = View.VISIBLE
         animator?.cancel()
 
@@ -106,8 +127,8 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
                 val y = fraction * heightExcludingLastLine
                 val x = fraction * width
 
-                guideView.translationX = x - (guideView.width / 2) + textView.left
-                guideView.translationY = textView.top.toFloat()
+                guideView.translationX = x - (guideView.width / 2)
+                guideView.translationY = y
 
                 val currentLine = highlightWordAtPosition(textView, x, y, lastLine)
                 if (currentLine != -1) lastLine = currentLine
@@ -117,7 +138,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
                     currentPosition = newPosition
                     breakWordIndex++
                     Log.d("DiagonalReading", "Animation ended, new currentPosition=$currentPosition, breakWordIndex=$breakWordIndex")
-                    showNextTextPart(textView, guideView)
+                    showNextTextPart(textView, guideView, onAnimationEnd)
                 }
             )
             start()

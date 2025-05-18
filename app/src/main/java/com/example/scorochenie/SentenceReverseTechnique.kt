@@ -8,6 +8,7 @@ import android.text.style.BackgroundColorSpan
 import android.text.style.StyleSpan
 import android.util.Log
 import android.view.View
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.animation.addListener
 import kotlin.random.Random
@@ -18,26 +19,11 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
     private var selectedTextIndex = 0
     private var fullText: String = ""
     private var currentPosition = 0
-    private var breakWordIndex = 0
-    private var currentPartText: String = ""
     private var animator: ValueAnimator? = null
     private var sentences: List<List<String>> = emptyList()
     private var sentenceStartIndices: List<Int> = emptyList()
-    private var previousParts: MutableList<String> = mutableListOf()
-    private var currentSentenceStartIndexInFullText: Int = -1
-    private var isAnimatingNextPage: Boolean = false
-    private var pagePositions: List<Int> = emptyList()
-    private var returnToPageIndex: Int = -1
-    private var returnToSentenceIndex: Int = -1
-    private var isReturningToFirstPage: Boolean = false
-    private var currentFullSentenceWords: List<String> = emptyList()
-    private var firstPageWordsRead: List<String> = emptyList()
-
-    private val reverseBreakWords = listOf(
-        listOf("наземные первые. Лишайники"),
-        listOf("приёмник. Звука", "вокруг километров тысячи"),
-        listOf("волны когда.")
-    )
+    private var scrollView: ScrollView? = null
+    private var lastScrollY: Int = 0 // Последняя позиция прокрутки
 
     override val description: SpannableString
         get() {
@@ -57,119 +43,59 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         onAnimationEnd: () -> Unit
     ) {
         selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
-        val originalText = TextResources.sampleTexts[selectedTextIndex]
-        fullText = reverseSentences(originalText).replace("\n", " ")
+        fullText = reverseSentences(TextResources.sampleTexts[selectedTextIndex]).replace("\n", " ")
         currentPosition = 0
-        breakWordIndex = 0
         currentSentenceIndex = 0
         currentWordIndexInSentence = 0
-        previousParts.clear()
-        isAnimatingNextPage = false
-        isReturningToFirstPage = false
-        returnToPageIndex = -1
-        returnToSentenceIndex = -1
-        currentFullSentenceWords = emptyList()
-        firstPageWordsRead = emptyList()
+        lastScrollY = 0
 
-        pagePositions = calculatePagePositions(fullText, reverseBreakWords[selectedTextIndex])
-        Log.d("SentenceReverse", "Page positions: $pagePositions")
+        // Проверяем, что TextView находится внутри ScrollView
+        scrollView = textView.parent as? ScrollView
+        Log.d("SentenceReverse", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
+        if (scrollView == null) {
+            Log.e("SentenceReverse", "TextView is not inside a ScrollView, scrolling will not work")
+        } else {
+            Log.d("SentenceReverse", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
+        }
 
         textView.gravity = android.view.Gravity.TOP
         textView.isSingleLine = false
         textView.maxLines = Int.MAX_VALUE
         textView.post {
-            Log.d("SentenceReverse", "Full text: $fullText")
-            Log.d("SentenceReverse", "Starting from page $breakWordIndex, position $currentPosition")
-            showNextTextPart(textView, guideView, onAnimationEnd)
+            Log.d("SentenceReverse", "Full text length: ${fullText.length}")
+            Log.d("SentenceReverse", "TextView height: ${textView.height}, width: ${textView.width}, lineCount: ${textView.lineCount}")
+            showText(textView, guideView, onAnimationEnd)
         }
     }
 
-    private fun calculatePagePositions(text: String, breakWords: List<String>): List<Int> {
-        val positions = mutableListOf<Int>()
-        positions.add(0)
-        var currentPos = 0
-        val sentenceRegex = Regex("([^.!?]+[.!?])")
-        val sentenceMatches = sentenceRegex.findAll(text).toList()
-        val sentenceEndPositions = sentenceMatches.map { it.range.endInclusive + 1 }
-
-        breakWords.forEach { breakWord ->
-            val breakIndex = text.indexOf(breakWord, currentPos)
-            if (breakIndex != -1) {
-                // Найти ближайший конец предложения после breakIndex
-                val nextSentenceEnd = sentenceEndPositions.find { it > breakIndex } ?: text.length
-                positions.add(nextSentenceEnd)
-                currentPos = nextSentenceEnd
-                Log.d("SentenceReverse", "Break word '$breakWord' at $breakIndex, adjusted to sentence end at $nextSentenceEnd")
-            }
-        }
-
-        // Если последняя позиция не конец текста, добавить конец текста
-        if (positions.last() < text.length) {
-            positions.add(text.length)
-        }
-
-        // Удалить дубликаты и отсортировать
-        return positions.distinct().sorted()
-    }
-
-    private fun showNextTextPart(
+    private fun showText(
         textView: TextView,
         guideView: View,
         onAnimationEnd: () -> Unit
     ) {
-        if (currentPosition >= fullText.length && !isAnimatingNextPage && !isReturningToFirstPage) {
+        if (currentPosition >= fullText.length) {
             guideView.visibility = View.INVISIBLE
             Log.d("SentenceReverse", "Text ended, stopping animation")
             animator?.cancel()
-            textView.text = currentPartText
+            textView.text = fullText
             onAnimationEnd()
             return
         }
 
-        val currentBreakWords = reverseBreakWords[selectedTextIndex]
-        val nextPageIndex = breakWordIndex + 1
-        val breakPosition = if (nextPageIndex < pagePositions.size) {
-            pagePositions[nextPageIndex]
-        } else {
-            fullText.length
-        }
+        textView.text = fullText
+        sentences = parseSentences(fullText)
+        sentenceStartIndices = calculateSentenceStartIndices(fullText, sentences)
 
-        currentPartText = fullText.substring(currentPosition, breakPosition.coerceAtMost(fullText.length)).trim()
-        if (!isAnimatingNextPage && !isReturningToFirstPage) {
-            if (breakWordIndex >= previousParts.size) {
-                previousParts.add(currentPartText)
-            } else {
-                previousParts[breakWordIndex] = currentPartText
-            }
-        }
-        sentences = parseSentences(currentPartText)
-        sentenceStartIndices = calculateSentenceStartIndices(currentPartText, sentences)
-
-        if (!isAnimatingNextPage && !isReturningToFirstPage) {
-            currentSentenceIndex = 0
-            Log.d("SentenceReverse", "Reset currentSentenceIndex to 0 for new page")
-        }
         val currentSentence = sentences.getOrNull(currentSentenceIndex)
-        if (isReturningToFirstPage && currentSentence != null) {
-            currentWordIndexInSentence = currentSentence.size - 1
-            isReturningToFirstPage = false
-            Log.d("SentenceReverse", "Returning to first page, set currentWordIndexInSentence=${currentWordIndexInSentence}, currentSentence=${currentSentence.joinToString(" ")}")
-        } else {
-            currentWordIndexInSentence = if (currentSentence.isNullOrEmpty()) -1 else currentSentence.size - 1
-        }
+        currentWordIndexInSentence = if (currentSentence.isNullOrEmpty()) -1 else currentSentence.size - 1
 
-        Log.d("SentenceReverse", "Showing part: startPosition=$currentPosition, endPosition=$breakPosition, text='$currentPartText', isAnimatingNextPage=$isAnimatingNextPage, isReturningToFirstPage=$isReturningToFirstPage")
-        Log.d("SentenceReverse", "Previous parts: ${previousParts.joinToString(" | ")}")
+        Log.d("SentenceReverse", "Showing text: '$fullText'")
         Log.d("SentenceReverse", "Sentences: ${sentences.map { it.joinToString(" ") }}")
         Log.d("SentenceReverse", "Sentence start indices: $sentenceStartIndices")
         Log.d("SentenceReverse", "Initial currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, currentSentence=${currentSentence?.joinToString(" ")}")
-        Log.d("SentenceReverse", "Current full sentence words: $currentFullSentenceWords")
-        Log.d("SentenceReverse", "First page words read: $firstPageWordsRead")
         if (currentSentence != null && currentWordIndexInSentence >= 0) {
             Log.d("SentenceReverse", "Starting with word: '${currentSentence[currentWordIndexInSentence]}' at position $currentWordIndexInSentence")
         }
-
-        textView.text = currentPartText
 
         textView.post {
             animateNextWord(textView, guideView, onAnimationEnd)
@@ -179,22 +105,8 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
     private fun parseSentences(text: String): List<List<String>> {
         val sentences = mutableListOf<List<String>>()
         val wordRegex = Regex("""\b\w+\b""")
-
-        if (isAnimatingNextPage && currentFullSentenceWords.isNotEmpty()) {
-            val words = wordRegex.findAll(text)
-                .map { it.value }
-                .filter { it.isNotEmpty() && currentFullSentenceWords.contains(it) }
-                .toList()
-            if (words.isNotEmpty()) {
-                sentences.add(words)
-                Log.d("SentenceReverse", "Parsed continuation sentence: ${words.joinToString(" ")} (word count: ${words.size})")
-                return sentences
-            } else {
-                Log.w("SentenceReverse", "No matching words from full sentence in text: $text")
-            }
-        }
-
         val sentenceRegex = Regex("([^.!?()]+[.!?])")
+
         sentenceRegex.findAll(text).forEach { matchResult ->
             val sentenceText = matchResult.value.trim()
             val words = wordRegex.findAll(sentenceText)
@@ -317,42 +229,28 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         guideView: View,
         onAnimationEnd: () -> Unit
     ) {
-        Log.d("SentenceReverse", "animateNextWord: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, isAnimatingNextPage=$isAnimatingNextPage, isReturningToFirstPage=$isReturningToFirstPage, fullSentenceWords=$currentFullSentenceWords")
+        Log.d("SentenceReverse", "animateNextWord: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence")
 
-        if (currentSentenceIndex >= sentences.size && !isAnimatingNextPage && !isReturningToFirstPage) {
-            if (breakWordIndex + 1 < pagePositions.size) {
-                currentPosition = pagePositions[breakWordIndex + 1]
-                breakWordIndex++
-                Log.d("SentenceReverse", "Page ended, moving to next page, new currentPosition=$currentPosition, breakWordIndex=$breakWordIndex")
-                showNextTextPart(textView, guideView, onAnimationEnd)
-            } else {
-                Log.d("SentenceReverse", "No more pages to display, ending animation")
-                guideView.visibility = View.INVISIBLE
-                animator?.cancel()
-                textView.text = currentPartText
-                onAnimationEnd()
-            }
+        if (currentSentenceIndex >= sentences.size) {
+            Log.d("SentenceReverse", "No more sentences to display, ending animation")
+            guideView.visibility = View.INVISIBLE
+            animator?.cancel()
+            textView.text = fullText
+            onAnimationEnd()
             return
         }
 
         val currentSentence = sentences.getOrNull(currentSentenceIndex)
         if (currentSentence == null || currentSentence.isEmpty() || currentWordIndexInSentence < 0) {
-            Log.d("SentenceReverse", "No valid sentence or word index, moving to next sentence")
             currentSentenceIndex++
             val nextSentence = sentences.getOrNull(currentSentenceIndex)
             currentWordIndexInSentence = if (nextSentence.isNullOrEmpty()) -1 else nextSentence.size - 1
-            if (!isAnimatingNextPage) {
-                currentFullSentenceWords = emptyList()
-                firstPageWordsRead = emptyList()
-            }
             Log.d("SentenceReverse", "Moving to next sentence: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, nextSentence=${nextSentence?.joinToString(" ")}")
+            if (nextSentence != null && currentWordIndexInSentence >= 0) {
+                Log.d("SentenceReverse", "Starting with word: '${nextSentence[currentWordIndexInSentence]}' at position $currentWordIndexInSentence")
+            }
             textView.post { animateNextWord(textView, guideView, onAnimationEnd) }
             return
-        }
-
-        if (!isAnimatingNextPage && !isReturningToFirstPage) {
-            firstPageWordsRead = currentSentence.take(currentWordIndexInSentence + 1)
-            Log.d("SentenceReverse", "Updated firstPageWordsRead: $firstPageWordsRead")
         }
 
         Log.d("SentenceReverse", "Starting sentence: ${currentSentence.joinToString(" ")} (word count: ${currentSentence.size})")
@@ -365,7 +263,7 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
     }
 
     private fun highlightWord(textView: TextView) {
-        val spannable = SpannableString(currentPartText)
+        val spannable = SpannableString(fullText)
         val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
         for (span in existingSpans) {
             spannable.removeSpan(span)
@@ -382,13 +280,13 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         val sentenceEndIndex = if (currentSentenceIndex + 1 < sentenceStartIndices.size) {
             sentenceStartIndices[currentSentenceIndex + 1]
         } else {
-            currentPartText.length
+            fullText.length
         }
         val wordStartIndex = findWordStartIndex(word, sentenceStartIndex, sentenceEndIndex, currentSentence, currentWordIndexInSentence)
 
-        if (wordStartIndex >= 0 && wordStartIndex < currentPartText.length) {
+        if (wordStartIndex >= 0 && wordStartIndex < fullText.length) {
             val endIndex = wordStartIndex + word.length
-            if (endIndex <= currentPartText.length) {
+            if (endIndex <= fullText.length) {
                 spannable.setSpan(
                     BackgroundColorSpan(Color.YELLOW),
                     wordStartIndex,
@@ -407,35 +305,35 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
     }
 
     private fun findWordStartIndex(word: String, startIndex: Int, endIndex: Int, sentence: List<String>, wordPosition: Int): Int {
-        if (startIndex < 0 || startIndex >= currentPartText.length || endIndex > currentPartText.length || startIndex >= endIndex) {
+        if (startIndex < 0 || startIndex >= fullText.length || endIndex > fullText.length || startIndex >= endIndex) {
             Log.e("SentenceReverse", "Invalid indices: startIndex=$startIndex, endIndex=$endIndex")
             return -1
         }
 
-        val sentenceText = currentPartText.substring(startIndex, endIndex)
+        val sentenceText = fullText.substring(startIndex, endIndex)
         Log.d("SentenceReverse", "Current sentence text: '$sentenceText'")
         Log.d("SentenceReverse", "Current sentence: ${sentence.joinToString(" ")}")
 
         var currentIndex = startIndex
         var currentWordIdx = 0
         while (currentIndex < endIndex && currentWordIdx <= wordPosition) {
-            while (currentIndex < endIndex && !currentPartText[currentIndex].isLetterOrDigit()) {
+            while (currentIndex < endIndex && !fullText[currentIndex].isLetterOrDigit()) {
                 currentIndex++
             }
             if (currentIndex >= endIndex) break
 
             val currentWord = sentence[currentWordIdx]
-            val isWordStart = currentIndex == 0 || !currentPartText[currentIndex - 1].isLetterOrDigit()
+            val isWordStart = currentIndex == 0 || !fullText[currentIndex - 1].isLetterOrDigit()
             val wordEnd = currentIndex + currentWord.length
-            val isWordEnd = wordEnd >= currentPartText.length || !currentPartText[wordEnd].isLetterOrDigit()
-            if (isWordStart && isWordEnd && currentPartText.substring(currentIndex, wordEnd) == currentWord) {
+            val isWordEnd = wordEnd >= fullText.length || !fullText[wordEnd].isLetterOrDigit()
+            if (isWordStart && isWordEnd && fullText.substring(currentIndex, wordEnd) == currentWord) {
                 if (currentWordIdx == wordPosition) {
                     return currentIndex
                 }
                 currentIndex = wordEnd
                 currentWordIdx++
             } else {
-                while (currentIndex < endIndex && currentPartText[currentIndex].isLetterOrDigit()) {
+                while (currentIndex < endIndex && fullText[currentIndex].isLetterOrDigit()) {
                     currentIndex++
                 }
             }
@@ -473,18 +371,18 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         val sentenceEndIndex = if (currentSentenceIndex + 1 < sentenceStartIndices.size) {
             sentenceStartIndices[currentSentenceIndex + 1]
         } else {
-            currentPartText.length
+            fullText.length
         }
         val wordStartIndex = findWordStartIndex(word, sentenceStartIndex, sentenceEndIndex, currentSentence, currentWordIndexInSentence)
 
-        if (wordStartIndex < 0 || wordStartIndex >= currentPartText.length) {
+        if (wordStartIndex < 0 || wordStartIndex >= fullText.length) {
             Log.e("SentenceReverse", "Invalid wordStartIndex: $wordStartIndex for word: '$word'")
             textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
             return
         }
 
         val wordEndIndex = wordStartIndex + word.length
-        if (wordEndIndex > currentPartText.length) {
+        if (wordEndIndex > fullText.length) {
             Log.e("SentenceReverse", "Invalid wordEndIndex: $wordEndIndex for word: '$word'")
             textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
             return
@@ -497,17 +395,68 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         if (endX == startX) {
             endX = startX + layout.getPrimaryHorizontal(wordStartIndex + 1)
         }
-        val lineY = layout.getLineTop(startLine).toFloat()
+        val lineTop = layout.getLineTop(startLine).toFloat()
+        val lineBottom = layout.getLineBottom(startLine).toFloat()
+        val lineY = (lineTop + lineBottom) / 2 // Середина строки для guideView
+
+        // Прокрутка ScrollView
+        scrollView?.let { sv ->
+            sv.post {
+                val scrollViewHeight = sv.height
+                val currentScrollY = sv.scrollY
+                val lineTopPosition = layout.getLineTop(startLine)
+                val lineBottomPosition = layout.getLineBottom(startLine)
+
+                // Определяем видимую область (верхняя треть экрана)
+                val visibleTop = currentScrollY
+                val visibleBottom = currentScrollY + scrollViewHeight * 2 / 3
+
+                // Прокручиваем, если строка не полностью видна
+                if (lineTopPosition < visibleTop || lineBottomPosition > visibleBottom) {
+                    // Цель: поставить строку в верхнюю треть экрана
+                    val targetScrollY = (lineTopPosition - scrollViewHeight / 3).coerceAtLeast(0).toInt()
+                    if (targetScrollY != lastScrollY) {
+                        Log.d("SentenceReverse", "Attempting scroll for line $startLine, word='$word'")
+                        Log.d("SentenceReverse", "Scroll parameters: line=$startLine, word='$word', lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
+                        // Плавная прокрутка
+                        ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
+                            duration = 500L // Длительность анимации прокрутки
+                            addUpdateListener { animation ->
+                                val value = animation.animatedValue as Int
+                                sv.scrollTo(0, value)
+                            }
+                            addListener(
+                                onEnd = {
+                                    lastScrollY = targetScrollY
+                                    Log.d("SentenceReverse", "Scrolled to line $startLine, targetScrollY=$targetScrollY, currentScrollY=${sv.scrollY}")
+                                }
+                            )
+                            start()
+                        }
+                    } else {
+                        Log.d("SentenceReverse", "No scroll needed, already at target: line=$startLine, word='$word', targetScrollY=$targetScrollY")
+                    }
+                } else {
+                    Log.d("SentenceReverse", "No scroll needed, line $startLine is visible, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, visibleTop=$visibleTop, visibleBottom=$visibleBottom")
+                }
+
+                sv.postDelayed({
+                    Log.d("SentenceReverse", "After scroll check, currentScrollY=${sv.scrollY}, textViewHeight=${textView.height}, scrollViewHeight=$scrollViewHeight")
+                }, 100)
+            }
+        } ?: Log.e("SentenceReverse", "ScrollView is null, cannot scroll to line $startLine for word '$word'")
 
         Log.d("SentenceReverse", "Animating word: '$word' at position $currentWordIndexInSentence, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine")
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 5L
+            duration = 1L // Исправлено: более заметная анимация слова
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
                 val currentX = startX + (endX - startX) * fraction
+                // Корректируем позицию guideView с учётом прокрутки
                 guideView.translationX = currentX - (guideView.width / 2) + textView.left
-                guideView.translationY = lineY + textView.top.toFloat()
+                guideView.translationY = lineY + textView.top.toFloat() - (scrollView?.scrollY?.toFloat() ?: 0f)
+                Log.d("SentenceReverse", "guideView position: translationX=${guideView.translationX}, translationY=${guideView.translationY}, scrollY=${scrollView?.scrollY}")
             }
             addListener(
                 onEnd = {

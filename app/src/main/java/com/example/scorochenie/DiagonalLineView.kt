@@ -25,7 +25,7 @@ class DiagonalLineView @JvmOverloads constructor(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val width = measuredWidth
-        val textView = (parent as View).findViewById<TextView>(R.id.animation_text)
+        val textView = (parent as View).findViewById<TextView>(R.id.animation_text_diagonal)
         val height = textView?.measuredHeight ?: 0
         setMeasuredDimension(width, height)
         Log.d("DiagonalLineView", "Measured size: ${width}x${height}")

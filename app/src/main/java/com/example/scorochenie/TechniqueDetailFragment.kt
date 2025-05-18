@@ -5,6 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 
@@ -23,6 +25,8 @@ class TechniqueDetailFragment : Fragment() {
 
     private lateinit var technique: ReadingTechnique
     private lateinit var guideView: View
+    private var animationTextView: TextView? = null
+    private var scrollView: ScrollView? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -53,56 +57,74 @@ class TechniqueDetailFragment : Fragment() {
 
         val titleTextView = view.findViewById<TextView>(R.id.technique_title)
         val descriptionTextView = view.findViewById<TextView>(R.id.technique_description)
-        val animationTextView = view.findViewById<TextView>(R.id.animation_text)
+        val scrollContainer = view.findViewById<FrameLayout>(R.id.scroll_container)
+        val diagonalContainer = view.findViewById<FrameLayout>(R.id.diagonal_container)
         val startButton = view.findViewById<Button>(R.id.start_button)
         val backButton = view.findViewById<Button>(R.id.back_button)
-
-        // Получаем DiagonalLineView из разметки
-        val diagonalLineView = view.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
 
         titleTextView.text = technique.name
         descriptionTextView.text = technique.description
 
         guideView = View(requireContext()).apply {
             visibility = View.INVISIBLE
+            layoutParams = FrameLayout.LayoutParams(20, 2).apply {
+                setMargins(0, 0, 0, 0)
+            }
+            setBackgroundColor(android.graphics.Color.BLACK)
+        }
+
+        // Выбираем нужный контейнер и TextView
+        if (technique is DiagonalReadingTechnique) {
+            diagonalContainer.visibility = View.VISIBLE
+            scrollContainer.visibility = View.GONE
+            animationTextView = view.findViewById(R.id.animation_text_diagonal)
+        } else {
+            scrollContainer.visibility = View.VISIBLE
+            diagonalContainer.visibility = View.GONE
+            animationTextView = view.findViewById(R.id.animation_text_scroll)
+            scrollView = view.findViewById(R.id.scrollView)
         }
 
         if (technique is DiagonalReadingTechnique || technique is KeywordSearchTechnique || technique is BlockReadingTechnique ||
             technique is PointerMethodTechnique || technique is SentenceReverseTechnique || technique is WordReverseTechnique
         ) {
-            animationTextView.visibility = View.GONE
+            animationTextView?.visibility = View.GONE
             startButton.visibility = View.VISIBLE
             startButton.setOnClickListener {
                 descriptionTextView.visibility = View.GONE
                 startButton.visibility = View.GONE
-                animationTextView.visibility = View.VISIBLE
+                animationTextView?.visibility = View.VISIBLE
                 backButton.visibility = View.VISIBLE
 
                 // Управление видимостью DiagonalLineView
-                if (technique is DiagonalReadingTechnique) {
+                val diagonalLineView = diagonalContainer.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
+                if (technique is DiagonalReadingTechnique && diagonalLineView != null) {
                     diagonalLineView.visibility = View.VISIBLE
                 } else {
-                    diagonalLineView.visibility = View.GONE
+                    diagonalLineView?.visibility = View.GONE
                 }
 
-                val frameLayout = animationTextView.parent as ViewGroup
+                // Добавляем guideView в активный контейнер
+                val activeContainer = if (technique is DiagonalReadingTechnique) diagonalContainer else scrollContainer
                 if (guideView.parent == null) {
-                    frameLayout.addView(guideView)
+                    activeContainer.addView(guideView)
                 }
 
-                technique.startAnimation(animationTextView, guideView) {
-                    val parent = guideView.parent as? ViewGroup
-                    parent?.removeView(guideView)
-
-                    // Оставляем текст видимым после анимации
-                    animationTextView.visibility = View.VISIBLE
-                    backButton.visibility = View.VISIBLE
+                animationTextView?.let { textView ->
+                    technique.startAnimation(textView, guideView) {
+                        val parent = guideView.parent as? ViewGroup
+                        parent?.removeView(guideView)
+                        animationTextView?.visibility = View.VISIBLE
+                        backButton.visibility = View.VISIBLE
+                    }
                 }
             }
         } else {
-            animationTextView.text = "Анимация для этой техники в разработке."
+            animationTextView?.text = "Анимация для этой техники в разработке."
+            animationTextView?.visibility = View.VISIBLE
             startButton.visibility = View.GONE
-            diagonalLineView.visibility = View.GONE
+            val diagonalLineView = diagonalContainer.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
+            diagonalLineView?.visibility = View.GONE
         }
 
         backButton.setOnClickListener {
@@ -114,6 +136,10 @@ class TechniqueDetailFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Очистка ресурсов, если нужно
+        // Очистка guideView
+        val parent = guideView.parent as? ViewGroup
+        parent?.removeView(guideView)
+        animationTextView = null
+        scrollView = null
     }
 }

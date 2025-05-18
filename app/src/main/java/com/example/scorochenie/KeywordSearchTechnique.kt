@@ -17,8 +17,6 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""
-    private var currentPosition = 0
-    private var breakWordIndex = 0
     private var animator: ValueAnimator? = null
     private var currentPartWords: List<String> = emptyList()
     private var currentPartText: String = ""
@@ -29,10 +27,10 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
                     "Для применения техники сканируйте текст, выделяя ключевые слова, такие как термины, имена или цифры.\n" +
                     "Пропускайте связующие слова и второстепенные детали, чтобы сосредоточиться на основном содержании и ускорить чтение."
             val spannable = SpannableString(text)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("сканируйте текст"), text.indexOf("сканируйте текст") + "сканируйте текст".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("ключевые слова"), text.indexOf("ключевые слова") + "ключевые слова".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("основном содержании"), text.indexOf("основном содержании") + "основном содержании".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("сканируйте текст"), text.indexOf("сканируйте текст") + "сканируйте текст".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("ключевые слова"), text.indexOf("ключевые слова") + "ключевые слова".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("основном содержании"), text.indexOf("основном содержании") + "основном содержании".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             return spannable
         }
 
@@ -43,11 +41,11 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
     ) {
         selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
         fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
-        currentPosition = 0
         currentWordIndex = 0
-        breakWordIndex = 0
 
         textView.gravity = android.view.Gravity.TOP
+        textView.isSingleLine = false
+        textView.maxLines = Int.MAX_VALUE
         textView.post {
             showNextTextPart(textView, guideView, onAnimationEnd)
         }
@@ -58,31 +56,11 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
         guideView: View,
         onAnimationEnd: () -> Unit
     ) {
-        if (currentPosition >= fullText.length) {
-            guideView.visibility = View.INVISIBLE
-            Log.d("KeywordSearch", "Text ended, stopping animation")
-            animator?.cancel()
-            // Сохраняем текущий текст, как в DiagonalReadingTechnique
-            val currentText = textView.text.toString()
-            textView.text = currentText
-            onAnimationEnd()
-            return
-        }
-
-        val currentBreakWords = TextResources.breakWords[selectedTextIndex]
-        val breakWord = if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
-        val breakPosition = if (breakWord.isNotEmpty()) {
-            val index = fullText.indexOf(breakWord, currentPosition)
-            if (index == -1) fullText.length else index + breakWord.length
-        } else {
-            fullText.length
-        }
-
-        currentPartText = fullText.substring(currentPosition, breakPosition).trim()
+        currentPartText = fullText
         currentPartWords = currentPartText.split("\\s+".toRegex()).filter { it.isNotEmpty() }
         currentWordIndex = 0
 
-        Log.d("KeywordSearch", "Showing part: startPosition=$currentPosition, endPosition=$breakPosition, breakWord='$breakWord', text='$currentPartText'")
+        Log.d("KeywordSearch", "Showing full text: '$currentPartText'")
 
         textView.text = currentPartText
         animateNextWord(textView, guideView, onAnimationEnd)
@@ -94,10 +72,11 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
         onAnimationEnd: () -> Unit
     ) {
         if (currentWordIndex >= currentPartWords.size) {
-            currentPosition += currentPartText.length + 1
-            breakWordIndex++
-            Log.d("KeywordSearch", "Part ended, moving to next part, new currentPosition=$currentPosition, breakWordIndex=$breakWordIndex")
-            showNextTextPart(textView, guideView, onAnimationEnd)
+            guideView.visibility = View.INVISIBLE
+            Log.d("KeywordSearch", "Text ended, stopping animation")
+            animator?.cancel()
+            textView.text = currentPartText
+            onAnimationEnd()
             return
         }
 
@@ -145,7 +124,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
                 startIndex = currentPartText.indexOf(keyWord, startIndex + 1, ignoreCase = false)
             }
         }
-        Log.d("KeywordSearch", "Found keywords in part: ${foundKeyWords.joinToString(",")}")
+        Log.d("KeywordSearch", "Found keywords in text: ${foundKeyWords.joinToString(",")}")
 
         // Подсвечиваем текущее слово жёлтым фоном
         var startIndex = 0
@@ -170,6 +149,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
 
         textView.text = spannable
     }
+
     private fun startWordAnimation(
         textView: TextView,
         guideView: View,

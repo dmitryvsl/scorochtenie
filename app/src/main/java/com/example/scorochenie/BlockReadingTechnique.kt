@@ -16,12 +16,10 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
     private var currentBlockIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""
-    private var currentPosition = 0
-    private var breakWordIndex = 0
     private var animator: ValueAnimator? = null
     private var currentPartText: String = ""
     private var lineCount: Int = 0
-    private var lines: List<IntRange> = emptyList() // Диапазоны символов для каждой строки
+    private var lines: List<IntRange> = emptyList()
 
     override val description: SpannableString
         get() {
@@ -43,11 +41,11 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
     ) {
         selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
         fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
-        currentPosition = 0
         currentBlockIndex = 0
-        breakWordIndex = 0
 
         textView.gravity = android.view.Gravity.TOP
+        textView.isSingleLine = false
+        textView.maxLines = Int.MAX_VALUE
         textView.post {
             showNextTextPart(textView, guideView, onAnimationEnd)
         }
@@ -58,30 +56,9 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
         guideView: View,
         onAnimationEnd: () -> Unit
     ) {
-        if (currentPosition >= fullText.length) {
-            guideView.visibility = View.INVISIBLE
-            Log.d("BlockReading", "Text ended, stopping animation")
-            animator?.cancel()
-            // Сохраняем текущий текст
-            val currentText = textView.text.toString()
-            textView.text = currentText
-            onAnimationEnd()
-            return
-        }
-
-        val currentBreakWords = TextResources.breakWords[selectedTextIndex]
-        val breakWord = if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
-        val breakPosition = if (breakWord.isNotEmpty()) {
-            val index = fullText.indexOf(breakWord, currentPosition)
-            if (index == -1) fullText.length else index + breakWord.length
-        } else {
-            fullText.length
-        }
-
-        currentPartText = fullText.substring(currentPosition, breakPosition).trim()
+        currentPartText = fullText
         textView.text = currentPartText
 
-        // Ждём, пока TextView отрисует текст, чтобы получить строки
         textView.post {
             val layout = textView.layout ?: return@post
             lineCount = layout.lineCount
@@ -90,7 +67,7 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
             }
             currentBlockIndex = 0
 
-            Log.d("BlockReading", "Showing part: startPosition=$currentPosition, endPosition=$breakPosition, breakWord='$breakWord', text='$currentPartText', lineCount=$lineCount")
+            Log.d("BlockReading", "Showing full text: '$currentPartText', lineCount=$lineCount")
             Log.d("BlockReading", "Lines: ${lines.map { currentPartText.substring(it.first, it.last) }.joinToString(" | ")}")
 
             animateNextBlock(textView, guideView, onAnimationEnd)
@@ -103,10 +80,11 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
         onAnimationEnd: () -> Unit
     ) {
         if (currentBlockIndex * 2 >= lineCount) {
-            currentPosition += currentPartText.length + 1
-            breakWordIndex++
-            Log.d("BlockReading", "Part ended, moving to next part, new currentPosition=$currentPosition, breakWordIndex=$breakWordIndex")
-            showNextTextPart(textView, guideView, onAnimationEnd)
+            guideView.visibility = View.INVISIBLE
+            Log.d("BlockReading", "Text ended, stopping animation")
+            animator?.cancel()
+            textView.text = currentPartText
+            onAnimationEnd()
             return
         }
 
@@ -116,13 +94,11 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
 
     private fun highlightBlock(textView: TextView) {
         val spannable = SpannableString(currentPartText)
-        // Удаляем все существующие BackgroundColorSpan
         val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
         for (span in existingSpans) {
             spannable.removeSpan(span)
         }
 
-        // Выделяем две строки
         val firstLineIndex = currentBlockIndex * 2
         val secondLineIndex = minOf(firstLineIndex + 1, lineCount - 1)
         val startIndex = lines[firstLineIndex].first
@@ -163,7 +139,7 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
         val blockHeight = layout.getLineBottom(endLine) - layout.getLineTop(startLine)
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 600L // Длительность анимации для блока (две строки)
+            duration = 600L
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
                 val currentX = startX + (endX - startX) * fraction

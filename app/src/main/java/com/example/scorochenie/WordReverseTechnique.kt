@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.BackgroundColorSpan
+import android.text.style.StyleSpan
 import android.util.Log
 import android.view.View
 import android.widget.TextView
@@ -15,18 +16,9 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""
-    private var currentPosition = 0
-    private var breakWordIndex = 0
     private var currentPartText: String = ""
     private var animator: ValueAnimator? = null
     private var allWords: List<String> = emptyList()
-
-    // Слова-прерыватели для перевёрнутого текста
-    private val reverseBreakWords = listOf(
-        listOf(", имыннёнартсорпсар ан йовон"),
-        listOf(", как ет, еыроток", "юьтсорокс 000092("),
-        listOf("в йиксечирткелэ лангис.")
-    )
 
     override val description: SpannableString
         get() {
@@ -34,9 +26,9 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
                     "Для применения техники читайте предложения слева направо, переворачивая буквы каждого слова в уме.\n" +
                     "Сосредоточьтесь на разбиении слов на буквы и их правильной сборке, чтобы улучшить навыки чтения."
             val spannable = SpannableString(text)
-            spannable.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("читайте предложения слева направо"), text.indexOf("читайте предложения слева направо") + "читайте предложения слева направо".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("переворачивая буквы"), text.indexOf("переворачивая буквы") + "переворачивая буквы".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("читайте предложения слева направо"), text.indexOf("читайте предложения слева направо") + "читайте предложения слева направо".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("переворачивая буквы"), text.indexOf("переворачивая буквы") + "переворачивая буквы".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             return spannable
         }
 
@@ -48,8 +40,6 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
         selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
         val originalText = TextResources.sampleTexts[selectedTextIndex]
         fullText = reverseWords(originalText).replace("\n", " ")
-        currentPosition = 0
-        breakWordIndex = 0
         currentWordIndex = 0
 
         textView.gravity = android.view.Gravity.TOP
@@ -65,37 +55,13 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
         guideView: View,
         onAnimationEnd: () -> Unit
     ) {
-        if (currentPosition >= fullText.length) {
-            guideView.visibility = View.INVISIBLE
-            Log.d("WordReverse", "Text ended, stopping animation")
-            animator?.cancel()
-            val currentText = textView.text.toString()
-            textView.text = currentText
-            onAnimationEnd()
-            return
-        }
-
-        val currentBreakWords = reverseBreakWords[selectedTextIndex]
-        val breakWord = if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
-        val breakPosition = if (breakWord.isNotEmpty()) {
-            val index = fullText.indexOf(breakWord, currentPosition)
-            if (index == -1) {
-                Log.e("WordReverse", "Break word '$breakWord' not found from position $currentPosition")
-                fullText.length
-            } else {
-                index + breakWord.length
-            }
-        } else {
-            fullText.length
-        }
-
-        currentPartText = fullText.substring(currentPosition, breakPosition).trim()
+        currentPartText = fullText
         allWords = currentPartText.split("\\s+".toRegex()).filter { it.isNotEmpty() }
         currentWordIndex = 0
 
         textView.text = currentPartText
 
-        Log.d("WordReverse", "Showing part: startPosition=$currentPosition, endPosition=$breakPosition, breakWord='$breakWord', text='$currentPartText'")
+        Log.d("WordReverse", "Showing full text: '$currentPartText'")
 
         textView.post {
             animateNextWord(textView, guideView, onAnimationEnd)
@@ -113,7 +79,6 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
             val token = tokens[i]
 
             if (token.any { it.isLetterOrDigit() }) {
-                // Это слово — собираем его + следующие за ним знаки препинания
                 val word = token
                 val punctuations = mutableListOf<String>()
 
@@ -123,10 +88,7 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
                     j++
                 }
 
-                // Переворачиваем само слово
                 val reversedWord = word.reversed()
-
-                // Добавляем в результат: перевёрнутое слово + пунктуация
                 result.append(reversedWord)
                 punctuations.forEach { result.append(it) }
 
@@ -136,7 +98,6 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
 
                 i = j
             } else {
-                // Это не слово (например, запятая или точка), пропускаем
                 i++
             }
         }
@@ -150,10 +111,11 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
         onAnimationEnd: () -> Unit
     ) {
         if (currentWordIndex >= allWords.size) {
-            currentPosition += currentPartText.length + 1
-            breakWordIndex++
-            Log.d("WordReverse", "Part ended, moving to next part, new currentPosition=$currentPosition, breakWordIndex=$breakWordIndex")
-            showNextTextPart(textView, guideView, onAnimationEnd)
+            guideView.visibility = View.INVISIBLE
+            Log.d("WordReverse", "Text ended, stopping animation")
+            animator?.cancel()
+            textView.text = currentPartText
+            onAnimationEnd()
             return
         }
 

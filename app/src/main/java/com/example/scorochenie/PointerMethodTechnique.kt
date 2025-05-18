@@ -11,13 +11,12 @@ import android.view.View
 import android.widget.TextView
 import androidx.core.animation.addListener
 import kotlin.random.Random
+import android.graphics.Typeface
 
 class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""
-    private var currentPosition = 0
-    private var breakWordIndex = 0
     private var animator: ValueAnimator? = null
     private var currentPartWords: List<String> = emptyList()
     private var currentPartText: String = ""
@@ -28,9 +27,9 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
                     "Для применения техники ведите указку плавно вдоль строк, следуя за текстом.\n" +
                     "Контролируйте скорость движения указки, чтобы сосредоточиться на ключевых словах и ускорить восприятие информации."
             val spannable = SpannableString(text)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("ведите указку плавно"), text.indexOf("ведите указку плавно") + "ведите указку плавно".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("ключевых словах"), text.indexOf("ключевых словах") + "ключевых словах".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("ведите указку плавно"), text.indexOf("ведите указку плавно") + "ведите указку плавно".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("ключевых словах"), text.indexOf("ключевых словах") + "ключевых словах".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             return spannable
         }
 
@@ -41,11 +40,11 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
     ) {
         selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
         fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
-        currentPosition = 0
         currentWordIndex = 0
-        breakWordIndex = 0
 
         textView.gravity = android.view.Gravity.TOP
+        textView.isSingleLine = false
+        textView.maxLines = Int.MAX_VALUE
         textView.post {
             showNextTextPart(textView, guideView, onAnimationEnd)
         }
@@ -56,31 +55,11 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
         guideView: View,
         onAnimationEnd: () -> Unit
     ) {
-        if (currentPosition >= fullText.length) {
-            guideView.visibility = View.INVISIBLE
-            Log.d("PointerMethod", "Text ended, stopping animation")
-            animator?.cancel()
-            // Сохраняем текущий текст, как в DiagonalReadingTechnique
-            val currentText = textView.text.toString()
-            textView.text = currentText
-            onAnimationEnd()
-            return
-        }
-
-        val currentBreakWords = TextResources.breakWords[selectedTextIndex]
-        val breakWord = if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
-        val breakPosition = if (breakWord.isNotEmpty()) {
-            val index = fullText.indexOf(breakWord, currentPosition)
-            if (index == -1) fullText.length else index + breakWord.length
-        } else {
-            fullText.length
-        }
-
-        currentPartText = fullText.substring(currentPosition, breakPosition).trim()
+        currentPartText = fullText
         currentPartWords = currentPartText.split("\\s+".toRegex()).filter { it.isNotEmpty() }
         currentWordIndex = 0
 
-        Log.d("PointerMethod", "Showing part: startPosition=$currentPosition, endPosition=$breakPosition, breakWord='$breakWord', text='$currentPartText'")
+        Log.d("PointerMethod", "Showing full text: '$currentPartText'")
 
         textView.text = currentPartText
         animateNextWord(textView, guideView, onAnimationEnd)
@@ -92,10 +71,11 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
         onAnimationEnd: () -> Unit
     ) {
         if (currentWordIndex >= currentPartWords.size) {
-            currentPosition += currentPartText.length + 1
-            breakWordIndex++
-            Log.d("PointerMethod", "Part ended, moving to next part, new currentPosition=$currentPosition, breakWordIndex=$breakWordIndex")
-            showNextTextPart(textView, guideView, onAnimationEnd)
+            guideView.visibility = View.INVISIBLE
+            Log.d("PointerMethod", "Text ended, stopping animation")
+            animator?.cancel()
+            textView.text = currentPartText
+            onAnimationEnd()
             return
         }
 
@@ -105,7 +85,6 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
 
     private fun highlightWord(textView: TextView) {
         val spannable = SpannableString(currentPartText)
-        // Удаляем все существующие BackgroundColorSpan
         val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
         for (span in existingSpans) {
             spannable.removeSpan(span)
@@ -155,7 +134,7 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
         val lineY = layout.getLineTop(startLine).toFloat()
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 300L // Длительность анимации для одного слова
+            duration = 300L
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
                 val currentX = startX + (endX - startX) * fraction

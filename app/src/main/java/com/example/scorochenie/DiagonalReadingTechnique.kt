@@ -8,6 +8,7 @@ import android.text.style.BackgroundColorSpan
 import android.text.style.StyleSpan
 import android.util.Log
 import android.view.View
+import android.view.animation.LinearInterpolator
 import android.widget.TextView
 import androidx.core.animation.addListener
 import kotlin.math.abs
@@ -22,7 +23,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
 
     override val description: SpannableString
         get() {
-            val text = "Чтение по диагонали — это способ быстрого чтения, при котором взгляд скользит по диагональной линии от верхнего левого угла к нижнему правому. В процессе внимания уделяется основным смысловым элементам — таким как заголовки, числа и важные фразы — без подробной проработки каждого слова. Такой подход позволяет быстро уловить суть прочитанного.\n" +
+            val text = "Чтение по диагонали — это способ быстрого чтения, при котором взгляд скользит по диагональной линии от верхнего левого угла к нижнему правому. В процессе внимания уделяется основным смысловым элементам — такими как заголовки, числа и важные фразы — без подробной проработки каждого слова. Такой подход позволяет быстро уловить суть прочитанного.\n" +
                     "Чтобы правильно применять эту методику, ведите взгляд по диагонали сверху вниз, не фокусируясь на каждом слове, а замечая ключевые смысловые точки текста."
             val spannable = SpannableString(text)
 
@@ -44,7 +45,6 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         currentPosition = 0
         breakWordIndex = 0
 
-        // Преобразуем WPM в миллисекунды на слово
         val wordDurationMs = (60_000 / durationPerWord).coerceAtLeast(50L)
         Log.d("DiagonalReading", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms")
 
@@ -124,7 +124,6 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
 
         Log.d("DiagonalReading", "Animating part with wordCount=$wordCount, wordDurationMs=$wordDurationMs, totalDuration=$totalDuration ms")
 
-        // Получаем layout и проверяем его готовность
         val layout = textView.layout
         if (layout == null) {
             Log.e("DiagonalReading", "TextView layout is null, retrying")
@@ -133,49 +132,47 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
             return
         }
 
-        val startOffsetX = 50f
-        val startOffsetY = 50f
-
-        // Рассчитываем параметры анимации
         val width = textView.width.toFloat()
         val visibleHeight = textView.height.toFloat()
         val totalLines = layout.lineCount
         val lastLineTop = if (totalLines > 1) layout.getLineTop(totalLines - 1) else visibleHeight
         val heightExcludingLastLine = if (totalLines > 1) lastLineTop.toFloat() else visibleHeight
-        val fractionStart = (startOffsetY / heightExcludingLastLine).coerceIn(0f, 0.99f)
 
-        Log.d("DiagonalReading", "Starting animation with offsets: startOffsetX=$startOffsetX, startOffsetY=$startOffsetY, fractionStart=$fractionStart")
-
-        // Инициализируем guideView в заданной позиции
-        guideView.visibility = View.INVISIBLE
-        guideView.translationX = startOffsetX - (guideView.width / 2)
-        guideView.translationY = startOffsetY
+        guideView.visibility = View.VISIBLE
+        guideView.translationX = 0f
+        guideView.translationY = 0f
         Log.d("DiagonalReading", "Initial guideView position: x=${guideView.translationX}, y=${guideView.translationY}, visibility=${guideView.visibility}")
 
-        // Подсвечиваем первое слово в заданной позиции
-        val initialLine = highlightWordAtPosition(textView, startOffsetX, startOffsetY, -1)
+        val initialLine = highlightWordAtPosition(textView, 0f, 0f, -1)
         Log.d("DiagonalReading", "Initial highlight called, currentLine=$initialLine")
 
-        animator = ValueAnimator.ofFloat(fractionStart, 1f).apply {
+        var lastTime = System.currentTimeMillis()
+        var lastX = 0f
+        var lastY = 0f
+
+        animator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = totalDuration
-            startDelay = 0
+            interpolator = LinearInterpolator() // Гарантируем линейное изменение
             var lastLine = initialLine
 
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
-                // Нормализуем fraction для диапазона [0, 1]
-                val normalizedFraction = if (fractionStart < 1f) {
-                    ((fraction - fractionStart) / (1f - fractionStart)).coerceIn(0f, 1f)
-                } else {
-                    0f
-                }
-
-                val y = startOffsetY + normalizedFraction * (heightExcludingLastLine - startOffsetY)
-                val x = startOffsetX + normalizedFraction * (width - startOffsetX)
+                val y = fraction * heightExcludingLastLine
+                val x = fraction * width
 
                 guideView.translationX = x - (guideView.width / 2)
                 guideView.translationY = y
-                Log.d("DiagonalReading", "guideView position: x=$x, y=$y, fraction=$fraction, normalizedFraction=$normalizedFraction, visibility=${guideView.visibility}")
+
+                val currentTime = System.currentTimeMillis()
+                val deltaTime = (currentTime - lastTime) / 1000f
+                if (deltaTime > 0) {
+                    val speedX = (x - lastX) / deltaTime
+                    val speedY = (y - lastY) / deltaTime
+                    Log.d("DiagonalReading", "guideView position: x=$x, y=$y, fraction=$fraction, visibility=${guideView.visibility}, speedX=$speedX px/s, speedY=$speedY px/s")
+                }
+                lastTime = currentTime
+                lastX = x
+                lastY = y
 
                 val currentLine = highlightWordAtPosition(textView, x, y, lastLine)
                 if (currentLine != -1) lastLine = currentLine
@@ -203,11 +200,9 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         val currentLine = layout.getLineForVertical(adjustedY.toInt())
 
         val totalLines = layout.lineCount
-        if (currentLine == totalLines - 1) {
+        if (currentLine == totalLines - 1 || currentLine <= lastLine) {
             return currentLine
         }
-
-        if (currentLine <= lastLine) return currentLine
 
         val diagonalSlope = visibleHeight / textView.width.toFloat()
         val expectedX = adjustedY / diagonalSlope

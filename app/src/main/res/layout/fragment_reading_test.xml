@@ -2,37 +2,75 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/android:colorBackground"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="?attr/android:colorBackground">
+    android:padding="5dp">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Чтение текста"
-        android:textSize="24sp"
-        android:textColor="?attr/colorOnBackground"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="10dp"
+        android:text="Чтение текста"
+        android:textColor="?attr/colorOnBackground"
+        android:textSize="24sp" />
 
+    <!-- Контейнер для техник с прокруткой -->
     <FrameLayout
-        android:id="@+id/container"
+        android:id="@+id/scroll_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:visibility="visible">
 
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:fillViewport="true">
+
             <TextView
-                android:id="@+id/animation_text"
+                android:id="@+id/animation_text_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="16sp"
-                android:justificationMode="inter_word"
                 android:gravity="top"
-                android:padding="16dp" />
+                android:justificationMode="inter_word"
+                android:padding="10dp"
+                android:textSize="16sp" />
+        </ScrollView>
+    </FrameLayout>
+
+    <!-- Контейнер для Чтения по диагонали -->
+    <FrameLayout
+        android:id="@+id/diagonal_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone">
+
+        <ScrollView
+            android:id="@+id/diagonal_scroll_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.example.scorochenie.DiagonalLineView
+                    android:id="@+id/diagonal_line_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:id="@+id/animation_text_diagonal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="top"
+                    android:justificationMode="inter_word"
+                    android:padding="10dp"
+                    android:textSize="16sp" />
+            </FrameLayout>
         </ScrollView>
     </FrameLayout>
 </LinearLayout>

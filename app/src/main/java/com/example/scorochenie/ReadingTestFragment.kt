@@ -42,6 +42,7 @@ class ReadingTestFragment : Fragment() {
         val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
         durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
 
+        // Определяем, какую технику используем
         technique = when (techniqueName) {
             "BlockReadingTechnique" -> BlockReadingTechnique()
             "DiagonalReadingTechnique" -> DiagonalReadingTechnique()
@@ -58,20 +59,38 @@ class ReadingTestFragment : Fragment() {
             }
         }
 
-        // Запускаем анимацию сразу после создания представления
-        startReadingAnimation()
+        // Переключаем видимость контейнеров в зависимости от техники
+        if (techniqueName == "DiagonalReadingTechnique") {
+            binding.scrollContainer.visibility = View.GONE
+            binding.diagonalContainer.visibility = View.VISIBLE
+            startReadingAnimation(binding.animationTextDiagonal)
+        } else {
+            binding.scrollContainer.visibility = View.VISIBLE
+            binding.diagonalContainer.visibility = View.GONE
+            startReadingAnimation(binding.animationTextScroll)
+        }
     }
 
-    private fun startReadingAnimation() {
-        val textView = binding.animationText
+    private fun startReadingAnimation(textView: android.widget.TextView) {
         val guideView = View(requireContext()).apply {
             layoutParams = FrameLayout.LayoutParams(20, 2)
             setBackgroundColor(android.graphics.Color.BLACK)
         }
-        binding.container.addView(guideView)
+
+        // Добавляем guideView в соответствующий контейнер
+        if (technique is DiagonalReadingTechnique) {
+            binding.diagonalContainer.addView(guideView)
+        } else {
+            binding.scrollContainer.addView(guideView)
+        }
 
         technique.startAnimation(textView, guideView) {
-            binding.container.removeView(guideView)
+            // Удаляем guideView из соответствующего контейнера
+            if (technique is DiagonalReadingTechnique) {
+                binding.diagonalContainer.removeView(guideView)
+            } else {
+                binding.scrollContainer.removeView(guideView)
+            }
             navigateToTest()
         }
     }

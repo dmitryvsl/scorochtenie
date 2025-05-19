@@ -50,7 +50,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         textView.post {
             Log.d("DiagonalReading", "TextView size after post: ${textView.width}x${textView.height}")
             val parent = textView.parent as View
-            Log.d("DiagonalReading", "FrameLayout size: ${parent.width}x${parent.height}")
+            Log.d("DiagonalReading", "FrameLayout size after text set: ${parent.width}x${parent.height}")
             showNextTextPart(textView, guideView, onAnimationEnd)
         }
     }
@@ -62,10 +62,8 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
     ) {
         if (currentPosition >= fullText.length) {
             guideView.visibility = View.INVISIBLE
-            // Не скрываем текст после завершения анимации
             Log.d("DiagonalReading", "Text ended, stopping animation")
             animator?.cancel()
-            // Очищаем выделение перед завершением
             clearHighlight(textView)
             onAnimationEnd()
             return
@@ -91,8 +89,13 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
             val parent = textView.parent as View
             Log.d("DiagonalReading", "FrameLayout size after text set: ${parent.width}x${parent.height}")
             val diagonalLineView = parent.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
-            diagonalLineView.requestLayout()
-            startDiagonalAnimation(textView, guideView, breakPosition, partText, onAnimationEnd)
+            if (diagonalLineView != null) {
+                diagonalLineView.requestLayout()
+                startDiagonalAnimation(textView, guideView, breakPosition, partText, onAnimationEnd)
+            } else {
+                Log.e("DiagonalReading", "DiagonalLineView not found, skipping animation")
+                onAnimationEnd()
+            }
         }
     }
 
@@ -135,7 +138,6 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
             }
             addListener(
                 onEnd = {
-                    // Очищаем выделение перед переходом к следующей части
                     clearHighlight(textView)
                     currentPosition = newPosition
                     breakWordIndex++

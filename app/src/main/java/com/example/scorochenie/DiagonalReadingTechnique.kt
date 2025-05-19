@@ -43,6 +43,10 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         currentPosition = 0
         breakWordIndex = 0
 
+        // Гарантируем, что guideView невидим
+        guideView.visibility = View.INVISIBLE
+        Log.d("DiagonalReading", "startAnimation: guideView visibility=${guideView.visibility} (0=INVISIBLE, 8=VISIBLE)")
+
         textView.gravity = android.view.Gravity.TOP
         textView.isSingleLine = false
         textView.maxLines = Int.MAX_VALUE
@@ -62,7 +66,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
     ) {
         if (currentPosition >= fullText.length) {
             guideView.visibility = View.INVISIBLE
-            Log.d("DiagonalReading", "Text ended, stopping animation")
+            Log.d("DiagonalReading", "Text ended, stopping animation, guideView visibility=${guideView.visibility}")
             animator?.cancel()
             clearHighlight(textView)
             onAnimationEnd()
@@ -91,6 +95,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
             val diagonalLineView = parent.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
             if (diagonalLineView != null) {
                 diagonalLineView.requestLayout()
+                Log.d("DiagonalReading", "DiagonalLineView found, visibility=${diagonalLineView.visibility}")
                 startDiagonalAnimation(textView, guideView, breakPosition, partText, onAnimationEnd)
             } else {
                 Log.e("DiagonalReading", "DiagonalLineView not found, skipping animation")
@@ -106,11 +111,13 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         partText: String,
         onAnimationEnd: () -> Unit
     ) {
-        guideView.visibility = View.VISIBLE
+        // Явно устанавливаем guideView невидимым
+        guideView.visibility = View.INVISIBLE
+        Log.d("DiagonalReading", "startDiagonalAnimation: guideView visibility=${guideView.visibility} (0=INVISIBLE, 8=VISIBLE)")
         animator?.cancel()
 
         val wordCount = partText.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
-        val durationPerWord = 100L
+        val durationPerWord = 40L
         val totalDuration = wordCount * durationPerWord
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
@@ -130,8 +137,10 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
                 val y = fraction * heightExcludingLastLine
                 val x = fraction * width
 
+                // Обновляем координаты guideView для расчётов, но он остаётся невидимым
                 guideView.translationX = x - (guideView.width / 2)
                 guideView.translationY = y
+                Log.d("DiagonalReading", "guideView position: x=$x, y=$y, fraction=$fraction, visibility=${guideView.visibility}")
 
                 val currentLine = highlightWordAtPosition(textView, x, y, lastLine)
                 if (currentLine != -1) lastLine = currentLine
@@ -139,6 +148,8 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
             addListener(
                 onEnd = {
                     clearHighlight(textView)
+                    guideView.visibility = View.INVISIBLE
+                    Log.d("DiagonalReading", "Animation ended, guideView visibility=${guideView.visibility}")
                     currentPosition = newPosition
                     breakWordIndex++
                     Log.d("DiagonalReading", "Animation ended, new currentPosition=$currentPosition, breakWordIndex=$breakWordIndex")
@@ -203,6 +214,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
                 Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             )
             textView.text = spannable
+            Log.d("DiagonalReading", "Highlighted word: start=$start, end=$end, text='${text.substring(start, end)}'")
         }
 
         return currentLine

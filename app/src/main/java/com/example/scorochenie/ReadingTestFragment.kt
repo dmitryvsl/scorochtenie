@@ -1,6 +1,7 @@
 package com.example.scorochenie
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -73,23 +74,29 @@ class ReadingTestFragment : Fragment() {
 
     private fun startReadingAnimation(textView: android.widget.TextView) {
         val guideView = View(requireContext()).apply {
+            visibility = View.INVISIBLE // Устанавливаем невидимость при создании
             layoutParams = FrameLayout.LayoutParams(20, 2)
             setBackgroundColor(android.graphics.Color.BLACK)
+            Log.d("ReadingTest", "guideView created with visibility=$visibility")
         }
 
         // Добавляем guideView в соответствующий контейнер
         if (technique is DiagonalReadingTechnique) {
             binding.diagonalContainer.addView(guideView)
+            Log.d("ReadingTest", "guideView added to diagonalContainer, visibility=${guideView.visibility}")
         } else {
             binding.scrollContainer.addView(guideView)
+            Log.d("ReadingTest", "guideView added to scrollContainer, visibility=${guideView.visibility}")
         }
 
         technique.startAnimation(textView, guideView) {
             // Удаляем guideView из соответствующего контейнера
             if (technique is DiagonalReadingTechnique) {
                 binding.diagonalContainer.removeView(guideView)
+                Log.d("ReadingTest", "guideView removed from diagonalContainer, visibility=${guideView.visibility}")
             } else {
                 binding.scrollContainer.removeView(guideView)
+                Log.d("ReadingTest", "guideView removed from scrollContainer, visibility=${guideView.visibility}")
             }
             navigateToTest()
         }
@@ -106,5 +113,6 @@ class ReadingTestFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        Log.d("ReadingTest", "onDestroyView called")
     }
 }

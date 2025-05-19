@@ -139,7 +139,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         val lastLineTop = if (totalLines > 1) layout.getLineTop(totalLines - 1) else visibleHeight
         val heightExcludingLastLine = if (totalLines > 1) lastLineTop.toFloat() else visibleHeight
 
-        guideView.visibility = View.VISIBLE
+        guideView.visibility = View.INVISIBLE
         guideView.translationX = 0f
         guideView.translationY = 0f
         Log.d("DiagonalReading", "Initial guideView position: x=${guideView.translationX}, y=${guideView.translationY}, visibility=${guideView.visibility}")

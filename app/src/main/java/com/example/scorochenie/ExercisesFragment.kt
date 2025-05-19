@@ -21,12 +21,12 @@ class ExercisesFragment : Fragment() {
 
         // Список техник
         val techniques = listOf(
-            TechniqueItem("BlockReadingTechnique", "Чтение блоками"),
             TechniqueItem("DiagonalReadingTechnique", "Чтение по диагонали"),
             TechniqueItem("KeywordSearchTechnique", "Поиск ключевых слов"),
-            TechniqueItem("PointerMethodTechnique", "Метод указки"),
+            TechniqueItem("BlockReadingTechnique", "Чтение \"блоками\""),
             TechniqueItem("SentenceReverseTechnique", "Предложения наоборот"),
-            TechniqueItem("WordReverseTechnique", "Слова наоборот")
+            TechniqueItem("WordReverseTechnique", "Слова наоборот"),
+            TechniqueItem("PointerMethodTechnique", "Метод \"указки\"")
         )
 
         // Установка адаптера

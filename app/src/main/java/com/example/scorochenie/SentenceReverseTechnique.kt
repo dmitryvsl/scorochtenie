@@ -41,9 +41,10 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         textView: TextView,
         guideView: View,
         durationPerWord: Long,
+        selectedTextIndex: Int,
         onAnimationEnd: () -> Unit
     ) {
-        selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
+        this.selectedTextIndex = selectedTextIndex
         fullText = reverseSentences(TextResources.sampleTexts[selectedTextIndex]).replace("\n", " ")
         currentPosition = 0
         currentSentenceIndex = 0

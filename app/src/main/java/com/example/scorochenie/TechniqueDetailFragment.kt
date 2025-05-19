@@ -10,7 +10,7 @@ import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-
+import kotlin.random.Random
 class TechniqueDetailFragment : Fragment() {
 
     companion object {
@@ -48,6 +48,7 @@ class TechniqueDetailFragment : Fragment() {
                     textView: TextView,
                     guideView: View,
                     durationPerWord: Long,
+                    selectedTextIndex: Int,
                     onAnimationEnd: () -> Unit
                 ) {
                     textView.text = "Анимация для этой техники недоступна"
@@ -55,6 +56,7 @@ class TechniqueDetailFragment : Fragment() {
                     onAnimationEnd()
                 }
             }
+
         }
 
         val titleTextView = view.findViewById<TextView>(R.id.technique_title)
@@ -118,10 +120,12 @@ class TechniqueDetailFragment : Fragment() {
 
                 // Устанавливаем значение durationPerWord по умолчанию (400 WPM)
                 val defaultDurationPerWord = 400L
-                Log.d("TechniqueDetail", "Starting animation with default durationPerWord=$defaultDurationPerWord WPM")
+                val selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
+
+                Log.d("TechniqueDetail", "Starting animation with default durationPerWord=$defaultDurationPerWord WPM and textIndex=$selectedTextIndex")
 
                 animationTextView?.let { textView ->
-                    technique.startAnimation(textView, guideView, defaultDurationPerWord) {
+                    technique.startAnimation(textView, guideView, defaultDurationPerWord, selectedTextIndex) {
                         val parent = guideView.parent as? ViewGroup
                         parent?.removeView(guideView)
                         animationTextView?.visibility = View.VISIBLE
@@ -130,6 +134,7 @@ class TechniqueDetailFragment : Fragment() {
                         Log.d("TechniqueDetail", "Animation ended, guideView removed and set to INVISIBLE")
                     }
                 }
+
             }
         } else {
             animationTextView?.text = "Анимация для этой техники в разработке."

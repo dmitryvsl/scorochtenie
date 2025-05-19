@@ -5,13 +5,13 @@ import android.view.View
 import android.widget.TextView
 
 abstract class ReadingTechnique(val name: String) {
-    open val description: SpannableString
-        get() = SpannableString(name)
+    open val description: SpannableString = SpannableString("")
 
     abstract fun startAnimation(
         textView: TextView,
         guideView: View,
-        durationPerWord: Long, // Добавляем параметр для скорости
+        durationPerWord: Long,
+        selectedTextIndex: Int,  // новый параметр
         onAnimationEnd: () -> Unit
     )
 }

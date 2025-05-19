@@ -39,9 +39,10 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
         textView: TextView,
         guideView: View,
         durationPerWord: Long,
+        selectedTextIndex: Int,
         onAnimationEnd: () -> Unit
     ) {
-        selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
+        this.selectedTextIndex = selectedTextIndex
         val originalText = TextResources.sampleTexts[selectedTextIndex]
         fullText = reverseWords(originalText).replace("\n", " ")
         currentWordIndex = 0

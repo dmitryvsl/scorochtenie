@@ -38,9 +38,10 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         textView: TextView,
         guideView: View,
         durationPerWord: Long,
+        selectedTextIndex: Int,
         onAnimationEnd: () -> Unit
     ) {
-        selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
+        this.selectedTextIndex = selectedTextIndex
         fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
         currentPosition = 0
         breakWordIndex = 0

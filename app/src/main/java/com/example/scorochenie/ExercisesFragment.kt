@@ -18,9 +18,33 @@ class ExercisesFragment : Fragment() {
         // Настройка RecyclerView
         val recyclerView = view.findViewById<RecyclerView>(R.id.exercises_list)
         recyclerView.layoutManager = LinearLayoutManager(context)
-        // Здесь нужно добавить адаптер для списка упражнений
-        // recyclerView.adapter = ExercisesAdapter(listOf("Упражнение 1", "Упражнение 2", ...))
+
+        // Список техник
+        val techniques = listOf(
+            TechniqueItem("BlockReadingTechnique", "Чтение блоками"),
+            TechniqueItem("DiagonalReadingTechnique", "Чтение по диагонали"),
+            TechniqueItem("KeywordSearchTechnique", "Поиск ключевых слов"),
+            TechniqueItem("PointerMethodTechnique", "Метод указки"),
+            TechniqueItem("SentenceReverseTechnique", "Предложения наоборот"),
+            TechniqueItem("WordReverseTechnique", "Слова наоборот")
+        )
+
+        // Установка адаптера
+        recyclerView.adapter = TechniqueSelectionAdapter(techniques) { techniqueName ->
+            navigateToSpeedSelection(techniqueName)
+        }
 
         return view
     }
+
+    private fun navigateToSpeedSelection(techniqueName: String) {
+        val fragment = SpeedSelectionFragment.newInstance(techniqueName)
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
+    }
 }
+
+// Временная data class для хранения информации о технике
+data class TechniqueItem(val name: String, val displayName: String)

@@ -21,5 +21,4 @@
         android:layout_height="match_parent"
         android:background="?attr/colorSurface"
         android:padding="8dp" />
-
 </LinearLayout>

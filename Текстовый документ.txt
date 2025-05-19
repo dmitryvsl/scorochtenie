@@ -1,0 +1,2153 @@
+package com.example.scorochenie
+
+import android.animation.ValueAnimator
+import android.graphics.Color
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.BackgroundColorSpan
+import android.text.style.StyleSpan
+import android.util.Log
+import android.view.View
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.core.animation.addListener
+import kotlin.random.Random
+
+class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\"") {
+    private var currentBlockIndex = 0
+    private var selectedTextIndex = 0
+    private var fullText: String = ""
+    private var animator: ValueAnimator? = null
+    private var currentPartText: String = ""
+    private var lineCount: Int = 0
+    private var lines: List<IntRange> = emptyList()
+    private var scrollView: ScrollView? = null
+    private var lastScrollY: Int = 0
+
+    override val description: SpannableString
+        get() {
+            val text = "Чтение \"блоками\" — это техника скорочтения, при которой текст воспринимается целыми смысловыми блоками, а не отдельными словами. Метод ускоряет обработку информации за счет группировки слов в логические единицы.\n" +
+                    "Чтобы применять эту технику, захватывайте взглядом группы слов одновременно, объединяя их в смысловые фрагменты.\n" +
+                    "Сосредоточьтесь на целостных идеях, чтобы быстрее уловить суть текста без лишнего чтения."
+            val spannable = SpannableString(text)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("захватывайте взглядом группы слов"), text.indexOf("захватывайте взглядом группы слов") + "захватывайте взглядом группы слов".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("смысловые фрагменты"), text.indexOf("смысловые фрагменты") + "смысловые фрагменты".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("целостных идеях"), text.indexOf("целостных идеях") + "целостных идеях".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            return spannable
+        }
+
+    override fun startAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
+        fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
+        currentBlockIndex = 0
+        lastScrollY = 0
+
+        scrollView = textView.parent as? ScrollView
+        Log.d("BlockReading", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
+        if (scrollView == null) {
+            Log.e("BlockReading", "TextView is not inside a ScrollView, scrolling will not work")
+        } else {
+            Log.d("BlockReading", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
+        }
+
+        textView.gravity = android.view.Gravity.TOP
+        textView.isSingleLine = false
+        textView.maxLines = Int.MAX_VALUE
+        textView.post {
+            showNextTextPart(textView, guideView, onAnimationEnd)
+        }
+    }
+
+    private fun showNextTextPart(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        currentPartText = fullText
+        textView.text = currentPartText
+
+        textView.post {
+            val layout = textView.layout ?: return@post
+            lineCount = layout.lineCount
+            lines = (0 until lineCount).map { line ->
+                layout.getLineStart(line)..layout.getLineEnd(line)
+            }
+            currentBlockIndex = 0
+
+            Log.d("BlockReading", "Showing full text: '$currentPartText', lineCount=$lineCount")
+            Log.d("BlockReading", "Lines: ${lines.map { currentPartText.substring(it.first, it.last) }.joinToString(" | ")}")
+
+            animateNextBlock(textView, guideView, onAnimationEnd)
+        }
+    }
+
+    private fun animateNextBlock(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        if (currentBlockIndex * 2 >= lineCount) {
+            guideView.visibility = View.INVISIBLE
+            Log.d("BlockReading", "Text ended, stopping animation")
+            animator?.cancel()
+            textView.text = currentPartText
+            onAnimationEnd()
+            return
+        }
+
+        highlightBlock(textView)
+        startBlockAnimation(textView, guideView, onAnimationEnd)
+    }
+
+    private fun highlightBlock(textView: TextView) {
+        val spannable = SpannableString(currentPartText)
+        val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+        for (span in existingSpans) {
+            spannable.removeSpan(span)
+        }
+
+        val firstLineIndex = currentBlockIndex * 2
+        val secondLineIndex = minOf(firstLineIndex + 1, lineCount - 1)
+        val startIndex = lines[firstLineIndex].first
+        val endIndex = lines[secondLineIndex].last
+
+        if (startIndex < spannable.length && endIndex <= spannable.length) {
+            spannable.setSpan(
+                BackgroundColorSpan(Color.YELLOW),
+                startIndex,
+                endIndex,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            Log.d("BlockReading", "Highlighting block: lines $firstLineIndex-$secondLineIndex, start=$startIndex, end=$endIndex, text='${currentPartText.substring(startIndex, endIndex)}'")
+        }
+
+        textView.text = spannable
+    }
+
+    private fun startBlockAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        guideView.visibility = View.VISIBLE
+        animator?.cancel()
+
+        val layout = textView.layout
+        if (layout == null) {
+            Log.e("BlockReading", "TextView layout is null")
+            textView.postDelayed({ animateNextBlock(textView, guideView, onAnimationEnd) }, 200)
+            return
+        }
+
+        val firstLineIndex = currentBlockIndex * 2
+        val secondLineIndex = minOf(firstLineIndex + 1, lineCount - 1)
+        val startIndex = lines[firstLineIndex].first
+        val endIndex = lines[secondLineIndex].last
+
+        val startLine = firstLineIndex
+        val endLine = secondLineIndex
+        val startX = layout.getLineLeft(startLine)
+        val endX = layout.getLineRight(endLine)
+        val lineTop = layout.getLineTop(startLine).toFloat()
+        val blockHeight = layout.getLineBottom(endLine) - layout.getLineTop(startLine)
+        val lineY = lineTop + (blockHeight / 2)
+
+        // Прокрутка ScrollView
+        scrollView?.let { sv ->
+            sv.post {
+                val scrollViewHeight = sv.height
+                val currentScrollY = sv.scrollY
+                val lineTopPosition = layout.getLineTop(startLine)
+                val lineBottomPosition = layout.getLineBottom(endLine)
+
+                // Определяем видимую область (верхняя треть экрана)
+                val visibleTop = currentScrollY
+                val visibleBottom = currentScrollY + scrollViewHeight * 2 / 3
+
+                // Прокручиваем, если блок не полностью виден
+                if (lineTopPosition < visibleTop || lineBottomPosition > visibleBottom) {
+                    // Цель: поставить верх блока в верхнюю треть экрана
+                    val targetScrollY = (lineTopPosition - scrollViewHeight / 3).coerceAtLeast(0).toInt()
+                    if (targetScrollY != lastScrollY) {
+                        Log.d("BlockReading", "Attempting scroll for block $currentBlockIndex, lines $startLine-$endLine")
+                        Log.d("BlockReading", "Scroll parameters: block=$currentBlockIndex, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
+                        // Плавная прокрутка
+                        ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
+                            duration = 500L // Длительность анимации прокрутки
+                            addUpdateListener { animation ->
+                                val value = animation.animatedValue as Int
+                                sv.scrollTo(0, value)
+                            }
+                            addListener(
+                                onEnd = {
+                                    lastScrollY = targetScrollY
+                                    Log.d("BlockReading", "Scrolled to block $currentBlockIndex, targetScrollY=$targetScrollY, currentScrollY=${sv.scrollY}")
+                                }
+                            )
+                            start()
+                        }
+                    } else {
+                        Log.d("BlockReading", "No scroll needed, already at target: block=$currentBlockIndex, targetScrollY=$targetScrollY")
+                    }
+                } else {
+                    Log.d("BlockReading", "No scroll needed, block $currentBlockIndex is visible, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, visibleTop=$visibleTop, visibleBottom=$visibleBottom")
+                }
+
+                sv.postDelayed({
+                    Log.d("BlockReading", "After scroll check, currentScrollY=${sv.scrollY}, textViewHeight=${textView.height}, scrollViewHeight=$scrollViewHeight")
+                }, 100)
+            }
+        } ?: Log.e("BlockReading", "ScrollView is null, cannot scroll to block $currentBlockIndex")
+
+        Log.d("BlockReading", "Animating block: $currentBlockIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine")
+
+        animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 600L
+            addUpdateListener { animation ->
+                val fraction = animation.animatedValue as Float
+                val currentX = startX + (endX - startX) * fraction
+                guideView.translationX = currentX - (guideView.width / 2) + textView.left
+                guideView.translationY = lineY + textView.top.toFloat() - (scrollView?.scrollY?.toFloat() ?: 0f)
+            }
+            addListener(
+                onEnd = {
+                    currentBlockIndex++
+                    Log.d("BlockReading", "Block animation ended, currentBlockIndex=$currentBlockIndex")
+                    animateNextBlock(textView, guideView, onAnimationEnd)
+                }
+            )
+            start()
+        }
+    }
+}package com.example.scorochenie
+
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.util.AttributeSet
+import android.util.Log
+import android.view.View
+import android.widget.TextView
+
+class DiagonalLineView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
+) : View(context, attrs, defStyleAttr) {
+
+    private val paint = Paint().apply {
+        color = Color.RED
+        strokeWidth = 4f * resources.displayMetrics.density // 4dp
+        style = Paint.Style.STROKE
+        isAntiAlias = true
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        val width = measuredWidth
+        val textView = (parent as View).findViewById<TextView>(R.id.animation_text_diagonal)
+        val height = textView?.measuredHeight ?: 0
+        setMeasuredDimension(width, height)
+        Log.d("DiagonalLineView", "Measured size: ${width}x${height}")
+
+        // Наблюдение за изменением размеров animationTextView
+        if (textView != null) {
+            textView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+                if (textView.measuredHeight != measuredHeight) {
+                    requestLayout()
+                }
+            }
+        }
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        canvas.drawLine(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        Log.d("DiagonalLineView", "Drawing line with size: ${width}x${height}")
+    }
+}package com.example.scorochenie
+
+import android.animation.ValueAnimator
+import android.graphics.Color
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.BackgroundColorSpan
+import android.text.style.StyleSpan
+import android.util.Log
+import android.view.View
+import android.widget.TextView
+import androidx.core.animation.addListener
+import kotlin.math.abs
+import kotlin.random.Random
+
+class DiagonalReadingTechnique : ReadingTechnique("Чтение по диагонали") {
+    private var currentPosition = 0
+    private var breakWordIndex = 0
+    private var selectedTextIndex = 0
+    private var fullText: String = ""
+    private var animator: ValueAnimator? = null
+
+    override val description: SpannableString
+        get() {
+            val text = "Чтение по диагонали — это способ быстрого чтения, при котором взгляд скользит по диагональной линии от верхнего левого угла к нижнему правому. В процессе внимания уделяется основным смысловым элементам — таким как заголовки, числа и важные фразы — без подробной проработки каждого слова. Такой подход позволяет быстро уловить суть прочитанного.\n" +
+                    "Чтобы правильно применять эту методику, ведите взгляд по диагонали сверху вниз, не фокусируясь на каждом слове, а замечая ключевые смысловые точки текста."
+            val spannable = SpannableString(text)
+
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("ведите взгляд по диагонали"), text.indexOf("ведите взгляд по диагонали") + "ведите взгляд по диагонали".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("ключевые смысловые точки"), text.indexOf("ключевые смысловые точки") + "ключевые смысловые точки".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            return spannable
+        }
+
+    override fun startAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
+        fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
+        currentPosition = 0
+        breakWordIndex = 0
+
+        textView.gravity = android.view.Gravity.TOP
+        textView.isSingleLine = false
+        textView.maxLines = Int.MAX_VALUE
+
+        textView.post {
+            Log.d("DiagonalReading", "TextView size after post: ${textView.width}x${textView.height}")
+            val parent = textView.parent as View
+            Log.d("DiagonalReading", "FrameLayout size: ${parent.width}x${parent.height}")
+            showNextTextPart(textView, guideView, onAnimationEnd)
+        }
+    }
+
+    private fun showNextTextPart(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        if (currentPosition >= fullText.length) {
+            guideView.visibility = View.INVISIBLE
+            // Не скрываем текст после завершения анимации
+            Log.d("DiagonalReading", "Text ended, stopping animation")
+            animator?.cancel()
+            // Очищаем выделение перед завершением
+            clearHighlight(textView)
+            onAnimationEnd()
+            return
+        }
+
+        val currentBreakWords = TextResources.breakWords[selectedTextIndex]
+        val breakWord = if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
+        val breakPosition = if (breakWord.isNotEmpty()) {
+            val index = fullText.indexOf(breakWord, currentPosition)
+            if (index == -1) fullText.length else index + breakWord.length
+        } else {
+            fullText.length
+        }
+
+        val partText = fullText.substring(currentPosition, breakPosition).trim()
+        Log.d("DiagonalReading", "Showing part: startPosition=$currentPosition, endPosition=$breakPosition, breakWord='$breakWord', text='$partText'")
+
+        textView.text = partText
+        textView.visibility = View.VISIBLE
+
+        textView.post {
+            Log.d("DiagonalReading", "TextView size after text set: ${textView.width}x${textView.height}")
+            val parent = textView.parent as View
+            Log.d("DiagonalReading", "FrameLayout size after text set: ${parent.width}x${parent.height}")
+            val diagonalLineView = parent.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
+            diagonalLineView.requestLayout()
+            startDiagonalAnimation(textView, guideView, breakPosition, partText, onAnimationEnd)
+        }
+    }
+
+    private fun startDiagonalAnimation(
+        textView: TextView,
+        guideView: View,
+        newPosition: Int,
+        partText: String,
+        onAnimationEnd: () -> Unit
+    ) {
+        guideView.visibility = View.VISIBLE
+        animator?.cancel()
+
+        val wordCount = partText.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
+        val durationPerWord = 100L
+        val totalDuration = wordCount * durationPerWord
+
+        animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = totalDuration
+            var lastLine = -1
+
+            addUpdateListener { animation ->
+                val fraction = animation.animatedValue as Float
+                val width = textView.width.toFloat()
+                val visibleHeight = textView.height.toFloat()
+
+                val layout = textView.layout
+                val totalLines = layout?.lineCount ?: 1
+                val lastLineTop = if (totalLines > 1) layout.getLineTop(totalLines - 1) else visibleHeight
+                val heightExcludingLastLine = if (totalLines > 1) lastLineTop.toFloat() else visibleHeight
+
+                val y = fraction * heightExcludingLastLine
+                val x = fraction * width
+
+                guideView.translationX = x - (guideView.width / 2)
+                guideView.translationY = y
+
+                val currentLine = highlightWordAtPosition(textView, x, y, lastLine)
+                if (currentLine != -1) lastLine = currentLine
+            }
+            addListener(
+                onEnd = {
+                    // Очищаем выделение перед переходом к следующей части
+                    clearHighlight(textView)
+                    currentPosition = newPosition
+                    breakWordIndex++
+                    Log.d("DiagonalReading", "Animation ended, new currentPosition=$currentPosition, breakWordIndex=$breakWordIndex")
+                    showNextTextPart(textView, guideView, onAnimationEnd)
+                }
+            )
+            start()
+        }
+    }
+
+    private fun highlightWordAtPosition(textView: TextView, x: Float, y: Float, lastLine: Int): Int {
+        val layout = textView.layout ?: return -1
+        val visibleHeight = textView.height.toFloat()
+
+        val adjustedY = y.coerceIn(0f, visibleHeight)
+        val currentLine = layout.getLineForVertical(adjustedY.toInt())
+
+        val totalLines = layout.lineCount
+        if (currentLine == totalLines - 1) {
+            return currentLine
+        }
+
+        if (currentLine <= lastLine) return currentLine
+
+        val diagonalSlope = visibleHeight / textView.width.toFloat()
+        val expectedX = adjustedY / diagonalSlope
+
+        var closestOffset = -1
+        var minDistance = Float.MAX_VALUE
+
+        for (offset in layout.getLineStart(currentLine) until layout.getLineEnd(currentLine)) {
+            if (textView.text[offset].isWhitespace()) continue
+
+            val charLeft = layout.getPrimaryHorizontal(offset)
+            val charRight = if (offset + 1 < textView.text.length) layout.getPrimaryHorizontal(offset + 1) else charLeft
+            val charX = (charLeft + charRight) / 2
+
+            val distance = abs(charX - expectedX)
+            if (distance < minDistance) {
+                minDistance = distance
+                closestOffset = offset
+            }
+        }
+
+        if (closestOffset != -1) {
+            val text = textView.text.toString()
+            var start = closestOffset
+            var end = closestOffset
+
+            while (start > 0 && !text[start - 1].isWhitespace()) start--
+            while (end < text.length && !text[end].isWhitespace()) end++
+
+            val spannable = SpannableString(text)
+            val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+            for (span in existingSpans) {
+                spannable.removeSpan(span)
+            }
+            spannable.setSpan(
+                BackgroundColorSpan(Color.YELLOW),
+                start,
+                end,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            textView.text = spannable
+        }
+
+        return currentLine
+    }
+
+    private fun clearHighlight(textView: TextView) {
+        val text = textView.text.toString()
+        val spannable = SpannableString(text)
+        val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+        for (span in existingSpans) {
+            spannable.removeSpan(span)
+        }
+        textView.text = spannable
+        Log.d("DiagonalReading", "Cleared highlight from text")
+    }
+}package com.example.scorochenie
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+
+class ExercisesFragment : Fragment() {
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_exercises, container, false)
+
+        // Настройка RecyclerView
+        val recyclerView = view.findViewById<RecyclerView>(R.id.exercises_list)
+        recyclerView.layoutManager = LinearLayoutManager(context)
+        // Здесь нужно добавить адаптер для списка упражнений
+        // recyclerView.adapter = ExercisesAdapter(listOf("Упражнение 1", "Упражнение 2", ...))
+
+        return view
+    }
+}package com.example.scorochenie
+
+import android.animation.ValueAnimator
+import android.graphics.Color
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.BackgroundColorSpan
+import android.text.style.StyleSpan
+import android.util.Log
+import android.view.View
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.core.animation.addListener
+import kotlin.random.Random
+import android.graphics.Typeface
+
+class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых слов") {
+    private var currentWordIndex = 0
+    private var selectedTextIndex = 0
+    private var fullText: String = ""
+    private var animator: ValueAnimator? = null
+    private var currentPartWords: List<String> = emptyList()
+    private var currentPartText: String = ""
+    private var scrollView: ScrollView? = null
+    private var lastScrollY: Int = 0
+
+    override val description: SpannableString
+        get() {
+            val text = "Поиск ключевых слов — это техника скорочтения, при которой читатель фокусируется только на наиболее значимых словах и фразах, игнорируя остальной текст. Этот метод позволяет быстро выделить суть материала.\n" +
+                    "Для применения техники сканируйте текст, выделяя ключевые слова, такие как термины, имена или цифры.\n" +
+                    "Пропускайте связующие слова и второстепенные детали, чтобы сосредоточиться на основном содержании и ускорить чтение."
+            val spannable = SpannableString(text)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("сканируйте текст"), text.indexOf("сканируйте текст") + "сканируйте текст".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("ключевые слова"), text.indexOf("ключевые слова") + "ключевые слова".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("основном содержании"), text.indexOf("основном содержании") + "основном содержании".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            return spannable
+        }
+
+    override fun startAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
+        fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
+        currentWordIndex = 0
+        lastScrollY = 0
+
+        scrollView = textView.parent as? ScrollView
+        Log.d("KeywordSearch", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
+        if (scrollView == null) {
+            Log.e("KeywordSearch", "TextView is not inside a ScrollView, scrolling will not work")
+        } else {
+            Log.d("KeywordSearch", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
+        }
+
+        textView.gravity = android.view.Gravity.TOP
+        textView.isSingleLine = false
+        textView.maxLines = Int.MAX_VALUE
+        textView.post {
+            showNextTextPart(textView, guideView, onAnimationEnd)
+        }
+    }
+
+    private fun showNextTextPart(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        currentPartText = fullText
+        currentPartWords = currentPartText.split("\\s+".toRegex()).filter { it.isNotEmpty() }
+        currentWordIndex = 0
+
+        Log.d("KeywordSearch", "Showing full text: '$currentPartText'")
+
+        textView.text = currentPartText
+        animateNextWord(textView, guideView, onAnimationEnd)
+    }
+
+    private fun animateNextWord(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        if (currentWordIndex >= currentPartWords.size) {
+            guideView.visibility = View.INVISIBLE
+            Log.d("KeywordSearch", "Text ended, stopping animation")
+            animator?.cancel()
+            textView.text = currentPartText
+            onAnimationEnd()
+            return
+        }
+
+        highlightWord(textView)
+        startWordAnimation(textView, guideView, onAnimationEnd)
+    }
+
+    private fun highlightWord(textView: TextView) {
+        val spannable = SpannableString(currentPartText)
+
+        // Удаляем все существующие BackgroundColorSpan, StyleSpan и ForegroundColorSpan
+        val existingBackgroundSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+        for (span in existingBackgroundSpans) {
+            spannable.removeSpan(span)
+        }
+        val existingStyleSpans = spannable.getSpans(0, spannable.length, StyleSpan::class.java)
+        for (span in existingStyleSpans) {
+            spannable.removeSpan(span)
+        }
+        val existingForegroundSpans = spannable.getSpans(0, spannable.length, android.text.style.ForegroundColorSpan::class.java)
+        for (span in existingForegroundSpans) {
+            spannable.removeSpan(span)
+        }
+
+        // Выделяем ключевые слова жирным шрифтом и красным цветом
+        val keyWords = TextResources.keyWords[selectedTextIndex]
+        val foundKeyWords = mutableListOf<String>()
+        keyWords.forEach { keyWord ->
+            var startIndex = currentPartText.indexOf(keyWord, ignoreCase = false)
+            while (startIndex != -1) {
+                val endIndex = startIndex + keyWord.length
+                spannable.setSpan(
+                    StyleSpan(Typeface.BOLD),
+                    startIndex,
+                    endIndex,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                spannable.setSpan(
+                    android.text.style.ForegroundColorSpan(Color.RED),
+                    startIndex,
+                    endIndex,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                foundKeyWords.add(keyWord)
+                startIndex = currentPartText.indexOf(keyWord, startIndex + 1, ignoreCase = false)
+            }
+        }
+        Log.d("KeywordSearch", "Found keywords in text: ${foundKeyWords.joinToString(",")}")
+
+        // Подсвечиваем текущее слово жёлтым фоном
+        var startIndex = 0
+        var wordCount = 0
+        currentPartWords.forEach { word ->
+            if (wordCount == currentWordIndex) {
+                val endIndex = startIndex + word.length
+                spannable.setSpan(
+                    BackgroundColorSpan(Color.YELLOW),
+                    startIndex,
+                    endIndex,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                Log.d("KeywordSearch", "Highlighting word: '$word', start=$startIndex, end=$endIndex")
+            }
+            startIndex += word.length
+            if (startIndex < currentPartText.length && currentPartText[startIndex] == ' ') {
+                startIndex++ // Пропускаем пробел
+            }
+            wordCount++
+        }
+
+        textView.text = spannable
+    }
+
+    private fun startWordAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        guideView.visibility = View.VISIBLE
+        animator?.cancel()
+
+        val layout = textView.layout
+        if (layout == null) {
+            Log.e("KeywordSearch", "TextView layout is null")
+            textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
+            return
+        }
+
+        val wordStartIndex = getWordStartIndex(currentWordIndex, currentPartText)
+        val wordEndIndex = wordStartIndex + currentPartWords[currentWordIndex].length
+
+        if (wordStartIndex < 0 || wordStartIndex >= currentPartText.length) {
+            Log.e("KeywordSearch", "Invalid wordStartIndex: $wordStartIndex")
+            currentWordIndex++
+            animateNextWord(textView, guideView, onAnimationEnd)
+            return
+        }
+
+        val startLine = layout.getLineForOffset(wordStartIndex)
+        val endLine = layout.getLineForOffset(wordEndIndex)
+        val startX = layout.getPrimaryHorizontal(wordStartIndex)
+        var endX = layout.getPrimaryHorizontal(wordEndIndex)
+        if (endX == startX) {
+            endX = startX + layout.getPrimaryHorizontal(wordStartIndex + 1)
+        }
+        val lineTop = layout.getLineTop(startLine).toFloat()
+        val lineBottom = layout.getLineBottom(startLine).toFloat()
+        val lineY = (lineTop + lineBottom) / 2 // Середина строки для guideView
+
+        // Прокрутка ScrollView
+        scrollView?.let { sv ->
+            sv.post {
+                val scrollViewHeight = sv.height
+                val currentScrollY = sv.scrollY
+                val lineTopPosition = layout.getLineTop(startLine)
+                val lineBottomPosition = layout.getLineBottom(startLine)
+
+                // Определяем видимую область (верхняя треть экрана)
+                val visibleTop = currentScrollY
+                val visibleBottom = currentScrollY + scrollViewHeight * 2 / 3
+
+                // Прокручиваем, если строка не полностью видна
+                if (lineTopPosition < visibleTop || lineBottomPosition > visibleBottom) {
+                    // Цель: поставить строку в верхнюю треть экрана
+                    val targetScrollY = (lineTopPosition - scrollViewHeight / 3).coerceAtLeast(0).toInt()
+                    if (targetScrollY != lastScrollY) {
+                        Log.d("KeywordSearch", "Attempting scroll for line $startLine, word='${currentPartWords[currentWordIndex]}'")
+                        Log.d("KeywordSearch", "Scroll parameters: line=$startLine, word='${currentPartWords[currentWordIndex]}', lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
+                        // Плавная прокрутка
+                        ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
+                            duration = 500L // Длительность анимации прокрутки
+                            addUpdateListener { animation ->
+                                val value = animation.animatedValue as Int
+                                sv.scrollTo(0, value)
+                            }
+                            addListener(
+                                onEnd = {
+                                    lastScrollY = targetScrollY
+                                    Log.d("KeywordSearch", "Scrolled to line $startLine, targetScrollY=$targetScrollY, currentScrollY=${sv.scrollY}")
+                                }
+                            )
+                            start()
+                        }
+                    } else {
+                        Log.d("KeywordSearch", "No scroll needed, already at target: line=$startLine, word='${currentPartWords[currentWordIndex]}', targetScrollY=$targetScrollY")
+                    }
+                } else {
+                    Log.d("KeywordSearch", "No scroll needed, line $startLine is visible, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, visibleTop=$visibleTop, visibleBottom=$visibleBottom")
+                }
+
+                sv.postDelayed({
+                    Log.d("KeywordSearch", "After scroll check, currentScrollY=${sv.scrollY}, textViewHeight=${textView.height}, scrollViewHeight=$scrollViewHeight")
+                }, 100)
+            }
+        } ?: Log.e("KeywordSearch", "ScrollView is null, cannot scroll to line $startLine for word '${currentPartWords[currentWordIndex]}'")
+
+        Log.d("KeywordSearch", "Animating word: '${currentPartWords[currentWordIndex]}' at position $currentWordIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine")
+
+        animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 300L // Длительность анимации для одного слова
+            addUpdateListener { animation ->
+                val fraction = animation.animatedValue as Float
+                val currentX = startX + (endX - startX) * fraction
+                guideView.translationX = currentX - (guideView.width / 2) + textView.left
+                guideView.translationY = lineY + textView.top.toFloat() - (scrollView?.scrollY?.toFloat() ?: 0f)
+            }
+            addListener(
+                onEnd = {
+                    currentWordIndex++
+                    Log.d("KeywordSearch", "Word animation ended, currentWordIndex=$currentWordIndex")
+                    animateNextWord(textView, guideView, onAnimationEnd)
+                }
+            )
+            start()
+        }
+    }
+
+    private fun getWordStartIndex(wordIndex: Int, text: String): Int {
+        var startIndex = 0
+        var count = 0
+        text.split("\\s+".toRegex()).forEachIndexed { index, word ->
+            if (count == wordIndex) {
+                return startIndex
+            }
+            startIndex += word.length
+            if (startIndex < text.length && text[startIndex] == ' ') {
+                startIndex++ // Пропускаем пробел
+            }
+            count++
+        }
+        return startIndex
+    }
+}package com.example.scorochenie
+
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import com.google.android.material.bottomnavigation.BottomNavigationView
+
+class MainActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        // Настройка BottomNavigationView
+        val bottomNavigation = findViewById<BottomNavigationView>(R.id.bottom_navigation)
+        bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_rating -> {
+                    loadFragment(RatingFragment())
+                    true
+                }
+                R.id.nav_exercises -> {
+                    loadFragment(ExercisesFragment())
+                    true
+                }
+                R.id.nav_materials -> {
+                    loadFragment(MaterialsFragment())
+                    true
+                }
+                else -> false
+            }
+        }
+
+        // Загружаем первый фрагмент при запуске
+        if (savedInstanceState == null) {
+            loadFragment(RatingFragment())
+        }
+    }
+
+    private fun loadFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .commit()
+    }
+}package com.example.scorochenie
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+
+class MaterialsFragment : Fragment() {
+
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var techniqueAdapter: TechniqueAdapter
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_materials, container, false)
+
+        recyclerView = view.findViewById(R.id.materials_list)
+        recyclerView.layoutManager = LinearLayoutManager(context)
+
+        // Добавляем разделитель
+        val dividerItemDecoration = DividerItemDecoration(
+            recyclerView.context,
+            LinearLayoutManager.VERTICAL
+        )
+        recyclerView.addItemDecoration(dividerItemDecoration)
+
+        val techniques = listOf(
+            Technique("Чтение по диагонали"),
+            Technique("Поиск ключевых слов"),
+            Technique("Чтение \"блоками\""),
+            Technique("Предложения наоборот"),
+            Technique("Слова наоборот"),
+            Technique("Метод \"указки\"")
+        )
+
+        techniqueAdapter = TechniqueAdapter(techniques) { technique ->
+            onTechniqueClicked(technique)
+        }
+        recyclerView.adapter = techniqueAdapter
+
+        return view
+    }
+
+    private fun onTechniqueClicked(technique: Technique) {
+        val detailFragment = TechniqueDetailFragment.newInstance(technique.name)
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, detailFragment)
+            .addToBackStack(null) // Добавляет возможность вернуться назад
+            .commit()
+    }
+}package com.example.scorochenie
+
+import android.animation.ValueAnimator
+import android.graphics.Color
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.BackgroundColorSpan
+import android.text.style.StyleSpan
+import android.util.Log
+import android.view.View
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.core.animation.addListener
+import kotlin.random.Random
+import android.graphics.Typeface
+
+class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
+    private var currentWordIndex = 0
+    private var selectedTextIndex = 0
+    private var fullText: String = ""
+    private var animator: ValueAnimator? = null
+    private var currentPartWords: List<String> = emptyList()
+    private var currentPartText: String = ""
+    private var scrollView: ScrollView? = null
+    private var lastScrollY: Int = 0
+
+    override val description: SpannableString
+        get() {
+            val text = "Метод \"указки\" — это техника скорочтения, при которой используется палец, ручка или другой указатель для направления взгляда по тексту. Метод помогает поддерживать ритм чтения и избегать возвращений назад.\n" +
+                    "Для применения техники ведите указку плавно вдоль строк, следуя за текстом.\n" +
+                    "Контролируйте скорость движения указки, чтобы сосредоточиться на ключевых словах и ускорить восприятие информации."
+            val spannable = SpannableString(text)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("ведите указку плавно"), text.indexOf("ведите указку плавно") + "ведите указку плавно".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("ключевых словах"), text.indexOf("ключевых словах") + "ключевых словах".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            return spannable
+        }
+
+    override fun startAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
+        fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
+        currentWordIndex = 0
+        lastScrollY = 0
+
+        scrollView = textView.parent as? ScrollView
+        Log.d("PointerMethod", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
+        if (scrollView == null) {
+            Log.e("PointerMethod", "TextView is not inside a ScrollView, scrolling will not work")
+        } else {
+            Log.d("PointerMethod", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
+        }
+
+        textView.gravity = android.view.Gravity.TOP
+        textView.isSingleLine = false
+        textView.maxLines = Int.MAX_VALUE
+        textView.post {
+            showNextTextPart(textView, guideView, onAnimationEnd)
+        }
+    }
+
+    private fun showNextTextPart(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        currentPartText = fullText
+        currentPartWords = currentPartText.split("\\s+".toRegex()).filter { it.isNotEmpty() }
+        currentWordIndex = 0
+
+        Log.d("PointerMethod", "Showing full text: '$currentPartText'")
+
+        textView.text = currentPartText
+        animateNextWord(textView, guideView, onAnimationEnd)
+    }
+
+    private fun animateNextWord(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        if (currentWordIndex >= currentPartWords.size) {
+            guideView.visibility = View.INVISIBLE
+            Log.d("PointerMethod", "Text ended, stopping animation")
+            animator?.cancel()
+            textView.text = currentPartText
+            onAnimationEnd()
+            return
+        }
+
+        highlightWord(textView)
+        startWordAnimation(textView, guideView, onAnimationEnd)
+    }
+
+    private fun highlightWord(textView: TextView) {
+        val spannable = SpannableString(currentPartText)
+        val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+        for (span in existingSpans) {
+            spannable.removeSpan(span)
+        }
+
+        var startIndex = 0
+        var wordCount = 0
+
+        currentPartWords.forEach { word ->
+            if (wordCount == currentWordIndex) {
+                val endIndex = startIndex + word.length
+                spannable.setSpan(
+                    BackgroundColorSpan(Color.YELLOW),
+                    startIndex,
+                    endIndex,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                Log.d("PointerMethod", "Highlighting word: '$word', start=$startIndex, end=$endIndex")
+            }
+            startIndex += word.length
+            if (startIndex < currentPartText.length && currentPartText[startIndex] == ' ') {
+                startIndex++ // Пропускаем пробел
+            }
+            wordCount++
+        }
+
+        textView.text = spannable
+    }
+
+    private fun startWordAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        guideView.visibility = View.VISIBLE
+        animator?.cancel()
+
+        val layout = textView.layout
+        if (layout == null) {
+            Log.e("PointerMethod", "TextView layout is null")
+            textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
+            return
+        }
+
+        val wordStartIndex = getWordStartIndex(currentWordIndex, currentPartText)
+        val wordEndIndex = wordStartIndex + currentPartWords[currentWordIndex].length
+
+        if (wordStartIndex < 0 || wordStartIndex >= currentPartText.length) {
+            Log.e("PointerMethod", "Invalid wordStartIndex: $wordStartIndex")
+            currentWordIndex++
+            animateNextWord(textView, guideView, onAnimationEnd)
+            return
+        }
+
+        val startLine = layout.getLineForOffset(wordStartIndex)
+        val endLine = layout.getLineForOffset(wordEndIndex)
+        val startX = layout.getPrimaryHorizontal(wordStartIndex)
+        var endX = layout.getPrimaryHorizontal(wordEndIndex)
+        if (endX == startX) {
+            endX = startX + layout.getPrimaryHorizontal(wordStartIndex + 1)
+        }
+        val lineTop = layout.getLineTop(startLine).toFloat()
+        val lineBottom = layout.getLineBottom(startLine).toFloat()
+        val lineY = (lineTop + lineBottom) / 2 // Середина строки для guideView
+
+        // Прокрутка ScrollView
+        scrollView?.let { sv ->
+            sv.post {
+                val scrollViewHeight = sv.height
+                val currentScrollY = sv.scrollY
+                val lineTopPosition = layout.getLineTop(startLine)
+                val lineBottomPosition = layout.getLineBottom(startLine)
+
+                // Определяем видимую область (верхняя треть экрана)
+                val visibleTop = currentScrollY
+                val visibleBottom = currentScrollY + scrollViewHeight * 2 / 3
+
+                // Прокручиваем, если строка не полностью видна
+                if (lineTopPosition < visibleTop || lineBottomPosition > visibleBottom) {
+                    // Цель: поставить строку в верхнюю треть экрана
+                    val targetScrollY = (lineTopPosition - scrollViewHeight / 3).coerceAtLeast(0).toInt()
+                    if (targetScrollY != lastScrollY) {
+                        Log.d("PointerMethod", "Attempting scroll for line $startLine, word='${currentPartWords[currentWordIndex]}'")
+                        Log.d("PointerMethod", "Scroll parameters: line=$startLine, word='${currentPartWords[currentWordIndex]}', lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
+                        // Плавная прокрутка
+                        ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
+                            duration = 500L // Длительность анимации прокрутки
+                            addUpdateListener { animation ->
+                                val value = animation.animatedValue as Int
+                                sv.scrollTo(0, value)
+                            }
+                            addListener(
+                                onEnd = {
+                                    lastScrollY = targetScrollY
+                                    Log.d("PointerMethod", "Scrolled to line $startLine, targetScrollY=$targetScrollY, currentScrollY=${sv.scrollY}")
+                                }
+                            )
+                            start()
+                        }
+                    } else {
+                        Log.d("PointerMethod", "No scroll needed, already at target: line=$startLine, word='${currentPartWords[currentWordIndex]}', targetScrollY=$targetScrollY")
+                    }
+                } else {
+                    Log.d("PointerMethod", "No scroll needed, line $startLine is visible, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, visibleTop=$visibleTop, visibleBottom=$visibleBottom")
+                }
+
+                sv.postDelayed({
+                    Log.d("PointerMethod", "After scroll check, currentScrollY=${sv.scrollY}, textViewHeight=${textView.height}, scrollViewHeight=$scrollViewHeight")
+                }, 100)
+            }
+        } ?: Log.e("PointerMethod", "ScrollView is null, cannot scroll to line $startLine for word '${currentPartWords[currentWordIndex]}'")
+
+        Log.d("PointerMethod", "Animating word: '${currentPartWords[currentWordIndex]}' at position $currentWordIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine")
+
+        animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 300L
+            addUpdateListener { animation ->
+                val fraction = animation.animatedValue as Float
+                val currentX = startX + (endX - startX) * fraction
+                guideView.translationX = currentX - (guideView.width / 2) + textView.left
+                guideView.translationY = lineY + textView.top.toFloat() - (scrollView?.scrollY?.toFloat() ?: 0f)
+            }
+            addListener(
+                onEnd = {
+                    currentWordIndex++
+                    Log.d("PointerMethod", "Word animation ended, currentWordIndex=$currentWordIndex")
+                    animateNextWord(textView, guideView, onAnimationEnd)
+                }
+            )
+            start()
+        }
+    }
+
+    private fun getWordStartIndex(wordIndex: Int, text: String): Int {
+        var startIndex = 0
+        var count = 0
+        text.split("\\s+".toRegex()).forEachIndexed { index, word ->
+            if (count == wordIndex) {
+                return startIndex
+            }
+            startIndex += word.length
+            if (startIndex < text.length && text[startIndex] == ' ') {
+                startIndex++ // Пропускаем пробел
+            }
+            count++
+        }
+        return startIndex
+    }
+}package com.example.scorochenie
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+
+class RatingFragment : Fragment() {
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.fragment_rating, container, false)
+    }
+}package com.example.scorochenie
+
+import android.text.SpannableString
+import android.view.View
+import android.widget.TextView
+
+abstract class ReadingTechnique(val name: String) {
+    open val description: SpannableString
+        get() = SpannableString("Описание техники в разработке")
+
+    abstract fun startAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    )
+}package com.example.scorochenie
+
+import android.animation.ValueAnimator
+import android.graphics.Color
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.BackgroundColorSpan
+import android.text.style.StyleSpan
+import android.util.Log
+import android.view.View
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.core.animation.addListener
+import kotlin.random.Random
+
+class SentenceReverseTechnique : ReadingTechnique("Предложения наоборот") {
+    private var currentSentenceIndex = 0
+    private var currentWordIndexInSentence = 0
+    private var selectedTextIndex = 0
+    private var fullText: String = ""
+    private var currentPosition = 0
+    private var animator: ValueAnimator? = null
+    private var sentences: List<List<String>> = emptyList()
+    private var sentenceStartIndices: List<Int> = emptyList()
+    private var scrollView: ScrollView? = null
+    private var lastScrollY: Int = 0 // Последняя позиция прокрутки
+
+    override val description: SpannableString
+        get() {
+            val text = "Предложения наоборот — это техника скорочтения, направленная на формирование навыка правильного чтения и профилактику «зеркального» чтения. Текст читается, начиная с последнего слова каждого предложения.\n" +
+                    "Для применения техники начинайте с последнего слова предложения и двигайтесь к первому.\n" +
+                    "Сосредоточьтесь на правильном порядке чтения слов, чтобы улучшить внимание и навыки чтения."
+            val spannable = SpannableString(text)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("начинайте с последнего слова"), text.indexOf("начинайте с последнего слова") + "начинайте с последнего слова".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("правильном порядке чтения"), text.indexOf("правильном порядке чтения") + "правильном порядке чтения".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            return spannable
+        }
+
+    override fun startAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
+        fullText = reverseSentences(TextResources.sampleTexts[selectedTextIndex]).replace("\n", " ")
+        currentPosition = 0
+        currentSentenceIndex = 0
+        currentWordIndexInSentence = 0
+        lastScrollY = 0
+
+        // Проверяем, что TextView находится внутри ScrollView
+        scrollView = textView.parent as? ScrollView
+        Log.d("SentenceReverse", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
+        if (scrollView == null) {
+            Log.e("SentenceReverse", "TextView is not inside a ScrollView, scrolling will not work")
+        } else {
+            Log.d("SentenceReverse", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
+        }
+
+        textView.gravity = android.view.Gravity.TOP
+        textView.isSingleLine = false
+        textView.maxLines = Int.MAX_VALUE
+        textView.post {
+            Log.d("SentenceReverse", "Full text length: ${fullText.length}")
+            Log.d("SentenceReverse", "TextView height: ${textView.height}, width: ${textView.width}, lineCount: ${textView.lineCount}")
+            showText(textView, guideView, onAnimationEnd)
+        }
+    }
+
+    private fun showText(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        if (currentPosition >= fullText.length) {
+            guideView.visibility = View.INVISIBLE
+            Log.d("SentenceReverse", "Text ended, stopping animation")
+            animator?.cancel()
+            textView.text = fullText
+            onAnimationEnd()
+            return
+        }
+
+        textView.text = fullText
+        sentences = parseSentences(fullText)
+        sentenceStartIndices = calculateSentenceStartIndices(fullText, sentences)
+
+        val currentSentence = sentences.getOrNull(currentSentenceIndex)
+        currentWordIndexInSentence = if (currentSentence.isNullOrEmpty()) -1 else currentSentence.size - 1
+
+        Log.d("SentenceReverse", "Showing text: '$fullText'")
+        Log.d("SentenceReverse", "Sentences: ${sentences.map { it.joinToString(" ") }}")
+        Log.d("SentenceReverse", "Sentence start indices: $sentenceStartIndices")
+        Log.d("SentenceReverse", "Initial currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, currentSentence=${currentSentence?.joinToString(" ")}")
+        if (currentSentence != null && currentWordIndexInSentence >= 0) {
+            Log.d("SentenceReverse", "Starting with word: '${currentSentence[currentWordIndexInSentence]}' at position $currentWordIndexInSentence")
+        }
+
+        textView.post {
+            animateNextWord(textView, guideView, onAnimationEnd)
+        }
+    }
+
+    private fun parseSentences(text: String): List<List<String>> {
+        val sentences = mutableListOf<List<String>>()
+        val wordRegex = Regex("""\b\w+\b""")
+        val sentenceRegex = Regex("([^.!?()]+[.!?])")
+
+        sentenceRegex.findAll(text).forEach { matchResult ->
+            val sentenceText = matchResult.value.trim()
+            val words = wordRegex.findAll(sentenceText)
+                .map { it.value }
+                .filter { it.isNotEmpty() }
+                .toList()
+            if (words.isNotEmpty()) {
+                sentences.add(words)
+                Log.d("SentenceReverse", "Parsed sentence: ${words.joinToString(" ")} (word count: ${words.size})")
+            }
+        }
+
+        if (sentences.isEmpty()) {
+            Log.w("SentenceReverse", "No sentences parsed from text: $text")
+            val words = wordRegex.findAll(text)
+                .map { it.value }
+                .filter { it.isNotEmpty() }
+                .toList()
+            if (words.isNotEmpty()) {
+                sentences.add(words)
+                Log.d("SentenceReverse", "Fallback parsed sentence: ${words.joinToString(" ")} (word count: ${words.size})")
+            }
+        }
+
+        Log.d("SentenceReverse", "Parsed sentences: ${sentences.map { it.joinToString(" ") }}")
+        return sentences
+    }
+
+    private fun calculateSentenceStartIndices(text: String, sentences: List<List<String>>): List<Int> {
+        val indices = mutableListOf<Int>()
+        var currentIndex = 0
+        sentences.forEach { sentence ->
+            indices.add(currentIndex)
+            sentence.forEach { word ->
+                var wordIndex = text.indexOf(word, currentIndex)
+                while (wordIndex != -1) {
+                    val isWordStart = wordIndex == 0 || !text[wordIndex - 1].isLetterOrDigit()
+                    val wordEnd = wordIndex + word.length
+                    val isWordEnd = wordEnd == text.length || !text[wordEnd].isLetterOrDigit()
+                    if (isWordStart && isWordEnd) {
+                        break
+                    }
+                    wordIndex = text.indexOf(word, wordIndex + 1)
+                }
+                if (wordIndex == -1) {
+                    Log.e("SentenceReverse", "Word '$word' not found from index $currentIndex in text: $text")
+                    return@forEach
+                }
+                currentIndex = wordIndex + word.length
+                while (currentIndex < text.length && text[currentIndex] == ' ') {
+                    currentIndex++
+                }
+            }
+            while (currentIndex < text.length && !text[currentIndex].isLetterOrDigit()) {
+                currentIndex++
+            }
+        }
+        Log.d("SentenceReverse", "Sentence start indices: $indices")
+        return indices
+    }
+
+    private fun reverseSentences(text: String): String {
+        val sentenceRegex = Regex("([^.!?]+)([.!?])")
+        return sentenceRegex.findAll(text).joinToString(" ") { matchResult ->
+            val body = matchResult.groupValues[1].trim()
+            val endPunct = matchResult.groupValues[2]
+            val tokenRegex = Regex("""\w+|[^\s\w]""")
+            val tokens = tokenRegex.findAll(body).map { it.value }.toList()
+
+            val wordChunks = mutableListOf<WordChunk>()
+            var i = 0
+            while (i < tokens.size) {
+                val tok = tokens[i]
+                if (tok.any { it.isLetterOrDigit() }) {
+                    val puncts = mutableListOf<String>()
+                    var j = i + 1
+                    while (j < tokens.size && !tokens[j].any { it.isLetterOrDigit() }) {
+                        puncts.add(tokens[j])
+                        j++
+                    }
+                    wordChunks.add(WordChunk(tok, puncts))
+                    i = j
+                } else {
+                    if (wordChunks.isNotEmpty()) {
+                        wordChunks.last().punctuation.add(tok)
+                    }
+                    i++
+                }
+            }
+
+            val sb = StringBuilder()
+            for ((word, puncts) in wordChunks.asReversed()) {
+                for (p in puncts) {
+                    sb.append(p)
+                }
+                if (sb.isNotEmpty() && sb.last() != ' ' && sb.last() !in listOf('-', '—', '–', ',', '.', '!', '?')) {
+                    sb.append(' ')
+                }
+                sb.append(word)
+                sb.append(' ')
+            }
+
+            var sent = sb.toString().trim()
+            val wordPattern = Regex("""\b([a-zA-Zа-яА-ЯёЁ]+)\b""")
+            val lastWordMatch = wordPattern.findAll(sent).lastOrNull()
+            if (lastWordMatch != null) {
+                val lastWord = lastWordMatch.value
+                val range = lastWordMatch.range
+                val correctedLastWord = lastWord.replaceFirstChar { it.lowercaseChar() }
+                sent = sent.substring(0, range.start) + correctedLastWord + sent.substring(range.endInclusive + 1)
+            }
+
+            val finalSent = sent.replaceFirstChar { it.uppercaseChar() }
+            "$finalSent$endPunct"
+        }
+    }
+
+    private fun animateNextWord(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        Log.d("SentenceReverse", "animateNextWord: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence")
+
+        if (currentSentenceIndex >= sentences.size) {
+            Log.d("SentenceReverse", "No more sentences to display, ending animation")
+            guideView.visibility = View.INVISIBLE
+            animator?.cancel()
+            textView.text = fullText
+            onAnimationEnd()
+            return
+        }
+
+        val currentSentence = sentences.getOrNull(currentSentenceIndex)
+        if (currentSentence == null || currentSentence.isEmpty() || currentWordIndexInSentence < 0) {
+            currentSentenceIndex++
+            val nextSentence = sentences.getOrNull(currentSentenceIndex)
+            currentWordIndexInSentence = if (nextSentence.isNullOrEmpty()) -1 else nextSentence.size - 1
+            Log.d("SentenceReverse", "Moving to next sentence: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, nextSentence=${nextSentence?.joinToString(" ")}")
+            if (nextSentence != null && currentWordIndexInSentence >= 0) {
+                Log.d("SentenceReverse", "Starting with word: '${nextSentence[currentWordIndexInSentence]}' at position $currentWordIndexInSentence")
+            }
+            textView.post { animateNextWord(textView, guideView, onAnimationEnd) }
+            return
+        }
+
+        Log.d("SentenceReverse", "Starting sentence: ${currentSentence.joinToString(" ")} (word count: ${currentSentence.size})")
+        Log.d("SentenceReverse", "Current word: '${currentSentence[currentWordIndexInSentence]}' at position $currentWordIndexInSentence")
+
+        textView.post {
+            highlightWord(textView)
+            startWordAnimation(textView, guideView, onAnimationEnd)
+        }
+    }
+
+    private fun highlightWord(textView: TextView) {
+        val spannable = SpannableString(fullText)
+        val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+        for (span in existingSpans) {
+            spannable.removeSpan(span)
+        }
+
+        val currentSentence = sentences.getOrNull(currentSentenceIndex)
+        if (currentSentence == null || currentSentence.isEmpty() || currentWordIndexInSentence < 0 || currentWordIndexInSentence >= currentSentence.size) {
+            Log.e("SentenceReverse", "Invalid sentence or word index: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, sentence=${currentSentence?.joinToString(" ")}")
+            return
+        }
+
+        val word = currentSentence[currentWordIndexInSentence]
+        val sentenceStartIndex = sentenceStartIndices.getOrNull(currentSentenceIndex) ?: 0
+        val sentenceEndIndex = if (currentSentenceIndex + 1 < sentenceStartIndices.size) {
+            sentenceStartIndices[currentSentenceIndex + 1]
+        } else {
+            fullText.length
+        }
+        val wordStartIndex = findWordStartIndex(word, sentenceStartIndex, sentenceEndIndex, currentSentence, currentWordIndexInSentence)
+
+        if (wordStartIndex >= 0 && wordStartIndex < fullText.length) {
+            val endIndex = wordStartIndex + word.length
+            if (endIndex <= fullText.length) {
+                spannable.setSpan(
+                    BackgroundColorSpan(Color.YELLOW),
+                    wordStartIndex,
+                    endIndex,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                Log.d("SentenceReverse", "Highlighting word: '$word' at position $currentWordIndexInSentence, start=$wordStartIndex, end=$endIndex")
+            } else {
+                Log.e("SentenceReverse", "Invalid end index: $endIndex for word: '$word'")
+            }
+        } else {
+            Log.e("SentenceReverse", "Invalid word start index: $wordStartIndex for word: '$word'")
+        }
+
+        textView.text = spannable
+    }
+
+    private fun findWordStartIndex(word: String, startIndex: Int, endIndex: Int, sentence: List<String>, wordPosition: Int): Int {
+        if (startIndex < 0 || startIndex >= fullText.length || endIndex > fullText.length || startIndex >= endIndex) {
+            Log.e("SentenceReverse", "Invalid indices: startIndex=$startIndex, endIndex=$endIndex")
+            return -1
+        }
+
+        val sentenceText = fullText.substring(startIndex, endIndex)
+        Log.d("SentenceReverse", "Current sentence text: '$sentenceText'")
+        Log.d("SentenceReverse", "Current sentence: ${sentence.joinToString(" ")}")
+
+        var currentIndex = startIndex
+        var currentWordIdx = 0
+        while (currentIndex < endIndex && currentWordIdx <= wordPosition) {
+            while (currentIndex < endIndex && !fullText[currentIndex].isLetterOrDigit()) {
+                currentIndex++
+            }
+            if (currentIndex >= endIndex) break
+
+            val currentWord = sentence[currentWordIdx]
+            val isWordStart = currentIndex == 0 || !fullText[currentIndex - 1].isLetterOrDigit()
+            val wordEnd = currentIndex + currentWord.length
+            val isWordEnd = wordEnd >= fullText.length || !fullText[wordEnd].isLetterOrDigit()
+            if (isWordStart && isWordEnd && fullText.substring(currentIndex, wordEnd) == currentWord) {
+                if (currentWordIdx == wordPosition) {
+                    return currentIndex
+                }
+                currentIndex = wordEnd
+                currentWordIdx++
+            } else {
+                while (currentIndex < endIndex && fullText[currentIndex].isLetterOrDigit()) {
+                    currentIndex++
+                }
+            }
+        }
+
+        Log.e("SentenceReverse", "Word '$word' at position $wordPosition not found in sentence text: '$sentenceText'")
+        return -1
+    }
+
+    private fun startWordAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        guideView.visibility = View.VISIBLE
+        animator?.cancel()
+
+        val layout = textView.layout
+        if (layout == null) {
+            Log.e("SentenceReverse", "TextView layout is null")
+            textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
+            return
+        }
+
+        val currentSentence = sentences.getOrNull(currentSentenceIndex)
+        if (currentSentence == null || currentSentence.isEmpty() || currentWordIndexInSentence < 0 || currentWordIndexInSentence >= currentSentence.size) {
+            Log.e("SentenceReverse", "Invalid sentence or word index: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, sentence=${currentSentence?.joinToString(" ")}")
+            currentWordIndexInSentence--
+            textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
+            return
+        }
+
+        val word = currentSentence[currentWordIndexInSentence]
+        val sentenceStartIndex = sentenceStartIndices.getOrNull(currentSentenceIndex) ?: 0
+        val sentenceEndIndex = if (currentSentenceIndex + 1 < sentenceStartIndices.size) {
+            sentenceStartIndices[currentSentenceIndex + 1]
+        } else {
+            fullText.length
+        }
+        val wordStartIndex = findWordStartIndex(word, sentenceStartIndex, sentenceEndIndex, currentSentence, currentWordIndexInSentence)
+
+        if (wordStartIndex < 0 || wordStartIndex >= fullText.length) {
+            Log.e("SentenceReverse", "Invalid wordStartIndex: $wordStartIndex for word: '$word'")
+            textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
+            return
+        }
+
+        val wordEndIndex = wordStartIndex + word.length
+        if (wordEndIndex > fullText.length) {
+            Log.e("SentenceReverse", "Invalid wordEndIndex: $wordEndIndex for word: '$word'")
+            textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
+            return
+        }
+
+        val startLine = layout.getLineForOffset(wordStartIndex)
+        val endLine = layout.getLineForOffset(wordEndIndex)
+        val startX = layout.getPrimaryHorizontal(wordStartIndex)
+        var endX = layout.getPrimaryHorizontal(wordEndIndex)
+        if (endX == startX) {
+            endX = startX + layout.getPrimaryHorizontal(wordStartIndex + 1)
+        }
+        val lineTop = layout.getLineTop(startLine).toFloat()
+        val lineBottom = layout.getLineBottom(startLine).toFloat()
+        val lineY = (lineTop + lineBottom) / 2 // Середина строки для guideView
+
+        // Прокрутка ScrollView
+        scrollView?.let { sv ->
+            sv.post {
+                val scrollViewHeight = sv.height
+                val currentScrollY = sv.scrollY
+                val lineTopPosition = layout.getLineTop(startLine)
+                val lineBottomPosition = layout.getLineBottom(startLine)
+
+                // Определяем видимую область (верхняя треть экрана)
+                val visibleTop = currentScrollY
+                val visibleBottom = currentScrollY + scrollViewHeight * 2 / 3
+
+                // Прокручиваем, если строка не полностью видна
+                if (lineTopPosition < visibleTop || lineBottomPosition > visibleBottom) {
+                    // Цель: поставить строку в верхнюю треть экрана
+                    val targetScrollY = (lineTopPosition - scrollViewHeight / 3).coerceAtLeast(0).toInt()
+                    if (targetScrollY != lastScrollY) {
+                        Log.d("SentenceReverse", "Attempting scroll for line $startLine, word='$word'")
+                        Log.d("SentenceReverse", "Scroll parameters: line=$startLine, word='$word', lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
+                        // Плавная прокрутка
+                        ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
+                            duration = 500L // Длительность анимации прокрутки
+                            addUpdateListener { animation ->
+                                val value = animation.animatedValue as Int
+                                sv.scrollTo(0, value)
+                            }
+                            addListener(
+                                onEnd = {
+                                    lastScrollY = targetScrollY
+                                    Log.d("SentenceReverse", "Scrolled to line $startLine, targetScrollY=$targetScrollY, currentScrollY=${sv.scrollY}")
+                                }
+                            )
+                            start()
+                        }
+                    } else {
+                        Log.d("SentenceReverse", "No scroll needed, already at target: line=$startLine, word='$word', targetScrollY=$targetScrollY")
+                    }
+                } else {
+                    Log.d("SentenceReverse", "No scroll needed, line $startLine is visible, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, visibleTop=$visibleTop, visibleBottom=$visibleBottom")
+                }
+
+                sv.postDelayed({
+                    Log.d("SentenceReverse", "After scroll check, currentScrollY=${sv.scrollY}, textViewHeight=${textView.height}, scrollViewHeight=$scrollViewHeight")
+                }, 100)
+            }
+        } ?: Log.e("SentenceReverse", "ScrollView is null, cannot scroll to line $startLine for word '$word'")
+
+        Log.d("SentenceReverse", "Animating word: '$word' at position $currentWordIndexInSentence, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine")
+
+        animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 1L // Исправлено: более заметная анимация слова
+            addUpdateListener { animation ->
+                val fraction = animation.animatedValue as Float
+                val currentX = startX + (endX - startX) * fraction
+                // Корректируем позицию guideView с учётом прокрутки
+                guideView.translationX = currentX - (guideView.width / 2) + textView.left
+                guideView.translationY = lineY + textView.top.toFloat() - (scrollView?.scrollY?.toFloat() ?: 0f)
+                Log.d("SentenceReverse", "guideView position: translationX=${guideView.translationX}, translationY=${guideView.translationY}, scrollY=${scrollView?.scrollY}")
+            }
+            addListener(
+                onEnd = {
+                    currentWordIndexInSentence--
+                    Log.d("SentenceReverse", "Word animation ended, currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence")
+                    textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
+                }
+            )
+            start()
+        }
+    }
+
+    data class WordChunk(val word: String, val punctuation: MutableList<String>)
+}package com.example.scorochenie
+
+data class Technique(val name: String, val description: String? = null)package com.example.scorochenie
+
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+
+class TechniqueAdapter(
+        private val techniques: List<Technique>,
+        private val onItemClick: (Technique) -> Unit // Callback для обработки кликов
+) : RecyclerView.Adapter<TechniqueAdapter.TechniqueViewHolder>() {
+
+class TechniqueViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    val techniqueName: TextView = itemView.findViewById(android.R.id.text1)
+}
+
+override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TechniqueViewHolder {
+    val view = LayoutInflater.from(parent.context)
+            .inflate(android.R.layout.simple_list_item_1, parent, false)
+    return TechniqueViewHolder(view)
+}
+
+override fun onBindViewHolder(holder: TechniqueViewHolder, position: Int) {
+    val technique = techniques[position]
+    holder.techniqueName.text = technique.name
+    holder.itemView.setOnClickListener {
+        onItemClick(technique)
+    }
+}
+
+override fun getItemCount(): Int = techniques.size
+}package com.example.scorochenie
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+
+class TechniqueDetailFragment : Fragment() {
+
+    companion object {
+        private const val ARG_TECHNIQUE_NAME = "technique_name"
+        fun newInstance(techniqueName: String): TechniqueDetailFragment {
+            val fragment = TechniqueDetailFragment()
+            val args = Bundle()
+            args.putString(ARG_TECHNIQUE_NAME, techniqueName)
+            fragment.arguments = args
+            return fragment
+        }
+    }
+
+    private lateinit var technique: ReadingTechnique
+    private lateinit var guideView: View
+    private var animationTextView: TextView? = null
+    private var scrollView: ScrollView? = null
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_technique_detail, container, false)
+        val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME)
+
+        technique = when (techniqueName) {
+            "Чтение по диагонали" -> DiagonalReadingTechnique()
+            "Поиск ключевых слов" -> KeywordSearchTechnique()
+            "Чтение \"блоками\"" -> BlockReadingTechnique()
+            "Предложения наоборот" -> SentenceReverseTechnique()
+            "Слова наоборот" -> WordReverseTechnique()
+            "Метод \"указки\"" -> PointerMethodTechnique()
+            else -> object : ReadingTechnique(techniqueName ?: "Неизвестная техника") {
+                override fun startAnimation(
+                    textView: TextView,
+                    guideView: View,
+                    onAnimationEnd: () -> Unit
+                ) {
+                    textView.text = "Анимация для этой техники недоступна"
+                    guideView.visibility = View.INVISIBLE
+                    onAnimationEnd()
+                }
+            }
+        }
+
+        val titleTextView = view.findViewById<TextView>(R.id.technique_title)
+        val descriptionTextView = view.findViewById<TextView>(R.id.technique_description)
+        val scrollContainer = view.findViewById<FrameLayout>(R.id.scroll_container)
+        val diagonalContainer = view.findViewById<FrameLayout>(R.id.diagonal_container)
+        val startButton = view.findViewById<Button>(R.id.start_button)
+        val backButton = view.findViewById<Button>(R.id.back_button)
+
+        titleTextView.text = technique.name
+        descriptionTextView.text = technique.description
+
+        guideView = View(requireContext()).apply {
+            visibility = View.INVISIBLE
+            layoutParams = FrameLayout.LayoutParams(20, 2).apply {
+                setMargins(0, 0, 0, 0)
+            }
+            setBackgroundColor(android.graphics.Color.BLACK)
+        }
+
+        // Выбираем нужный контейнер и TextView
+        if (technique is DiagonalReadingTechnique) {
+            diagonalContainer.visibility = View.VISIBLE
+            scrollContainer.visibility = View.GONE
+            animationTextView = view.findViewById(R.id.animation_text_diagonal)
+        } else {
+            scrollContainer.visibility = View.VISIBLE
+            diagonalContainer.visibility = View.GONE
+            animationTextView = view.findViewById(R.id.animation_text_scroll)
+            scrollView = view.findViewById(R.id.scrollView)
+        }
+
+        if (technique is DiagonalReadingTechnique || technique is KeywordSearchTechnique || technique is BlockReadingTechnique ||
+            technique is PointerMethodTechnique || technique is SentenceReverseTechnique || technique is WordReverseTechnique
+        ) {
+            animationTextView?.visibility = View.GONE
+            startButton.visibility = View.VISIBLE
+            startButton.setOnClickListener {
+                descriptionTextView.visibility = View.GONE
+                startButton.visibility = View.GONE
+                animationTextView?.visibility = View.VISIBLE
+                backButton.visibility = View.VISIBLE
+
+                // Управление видимостью DiagonalLineView
+                val diagonalLineView = diagonalContainer.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
+                if (technique is DiagonalReadingTechnique && diagonalLineView != null) {
+                    diagonalLineView.visibility = View.VISIBLE
+                } else {
+                    diagonalLineView?.visibility = View.GONE
+                }
+
+                // Добавляем guideView в активный контейнер
+                val activeContainer = if (technique is DiagonalReadingTechnique) diagonalContainer else scrollContainer
+                if (guideView.parent == null) {
+                    activeContainer.addView(guideView)
+                }
+
+                animationTextView?.let { textView ->
+                    technique.startAnimation(textView, guideView) {
+                        val parent = guideView.parent as? ViewGroup
+                        parent?.removeView(guideView)
+                        animationTextView?.visibility = View.VISIBLE
+                        backButton.visibility = View.VISIBLE
+                    }
+                }
+            }
+        } else {
+            animationTextView?.text = "Анимация для этой техники в разработке."
+            animationTextView?.visibility = View.VISIBLE
+            startButton.visibility = View.GONE
+            val diagonalLineView = diagonalContainer.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
+            diagonalLineView?.visibility = View.GONE
+        }
+
+        backButton.setOnClickListener {
+            parentFragmentManager.popBackStack()
+        }
+
+        return view
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Очистка guideView
+        val parent = guideView.parent as? ViewGroup
+        parent?.removeView(guideView)
+        animationTextView = null
+        scrollView = null
+    }
+}package com.example.scorochenie
+
+object TextResources {
+    val sampleTexts = listOf(
+        """
+        Зелёные растения – единственный вид живых существ, способный самостоятельно производить свою пищу. Растение получают пищу из воды, углекислого газа и минералов почвы, также они используют энергию Солнца. Этот процесс называется фотосинтезом. В результате также выделяется кислород, необходимый для всех живых существ. Животные пользуются пищей, созданной растениями, поедая растения или тех животных, которые питаются этими растениями. Без растений все животные и люди должны были бы умереть. Первые растения представляли собой отдельные клетки, плававшие в океане, покрывавшем всю землю. Постепенно некоторые клетки образовали соединения, каждое с особой задачей. Корень – чтобы удерживать растение на месте; стебель – чтобы обеспечить процесс фотосинтеза и размножение. Водоросли остались простейшими. Когда растения выбрались на землю, им пришлось приспособиться к жизни на суше без поддержки воды. Стебли растений становились толще, и у них развился корень. Первые наземные растения обитали лишь в сырых местах, однако нынешние растения распространены в разных местах: от границ арктических льдов до тропических джунглей. Первыми растениями, распространёнными на новой территории, были лишайники. Они нарастают, словно кора, на обнажённой поверхности скал. Умирая, они сгнивают и превращаются в первый слой почвы. На этом слое почвы вырастают мхи, и их смерть и разложение, в свою очередь, формирует второй слой почвы. Вскоре почвы становится достаточно, чтобы росли папоротники и цветковые растения. Таким образом развивается сообщество растений, обеспечивая пищей животных и образуя единую среду обитания. Ботаникам известно около 380000 видов растений. Большинство из них можно найти в тропических лесах. Из 250000 видов цветковых растений 90000 принадлежат к флоре Центральной и Южной Америки, а ещё 30000 – к флоре тропической Африки. Далее на север разнообразие растений уменьшается. В Великобритании насчитывается всего 1800 видов. Растения закрепляются практически везде на нашей планете. Однако их благополучию угрожают люди в своих поисках пищи, топлива и пространства для жизни.
+        """.trimIndent(),
+        """
+        Если ты включишь радио, то услышишь человека, который говорит в сотнях и тысячах миль от тебя. Звук не распространяется так далеко. Чтобы направлять поток волн, используется передатчик. Радиоприёмник улавливает радиоволны и использует их для того, чтобы передать копию первоначального звука. Когда человек говорит в микрофон, его голос воспроизводит вибрацию воздуха. Микрофон превращает вибрацию в слабый переменный электрический ток, то есть в электрические сигналы. Электрические сигналы поступают на передатчик, который превращает их в радиоволны, заставляя ток резко подниматься и опускаться по антенне. Радиоволны выходят из передатчика в виде единого потока, это несущая волна. В простейших типах передатчиков сигналы из микрофона контролируют мощность испускаемых радиоволн. Это значит, что радиоволны пульсируют, меняя свою мощность, в соответствии со звуковой вибрацией. Такое управление радиоволнами называется манипулирование амплитудой. Пульсирующие радиоволны передатчика, радиосигналы, улавливаются антенной приёмника. Приёмник превращает волны вновь в электросигналы, которые поступают вновь в громкоговоритель. Громкоговоритель воспроизводит в воздухе точно такие же вибрации, как те, которые поступали в микрофон, так что мы слышим копию первоначального звука. Передатчики каждую секунду передают миллионы разных волн. Количество волн в секунду называется частотой. Она отмечена на шкале настройки радиоприёмника либо в килогерцах (тысяча волн в секунду), либо в мегагерцах (в миллионах волн в секунду). Различные станции используют различные частоты, поэтому, чтобы выбрать ту, которая тебе нужна, надо настроить приёмник. Радиоволны используются во многих других средствах коммуникации, кроме просто передачи звука. Полиция, пожарные, таксисты и врачи «скорой помощи» используют двухстороннее радио, чтобы переговариваться со штабом и друг с другом. Радиотелефон подключается к телефону сети через радио. Корабли и самолёты тоже используют радио для переговоров и ориентации, поскольку по сигналу радиомаяка они определяют своё местонахождение. Телевидение применяет радиоволны для передачи звука и изображения. По радио можно управлять большими космическими кораблями, моделями автомашин, лодками и самолётами. Некоторые радиоволны проходят тысячи километров вокруг земли, двигаясь между ионосферой и поверхностью земли. Они мчатся со скоростью 290000 (двести девяносто тысяч) километров в секунду. Мы не успеем и глазом моргнуть, как радиоволны совершат кругосветное путешествие.
+        """.trimIndent(),
+        """
+        Радар позволяет нам обнаружить положение неподвижного объекта, даже если он находится очень далеко или в темноте. Радар необходим для авиадиспетчеров, которые с его помощью определяют высоту самолёта и место, где он находится, далеко ли от аэропорта. С помощью радара и другие виды транспорта могут двигаться, не рискуя столкнуться. Радар может рассмотреть очень маленькие предметы размером с насекомых или большие, величиной с гору. Для прогнозирования погоды используются радары, которые могут обнаружить приближение грозовой тучи или урагана. Учёные применяют радар для изучения атмосферы и других планет. Он также необходим для космических полётов: с помощью радара диспетчер на Земле может проследить путь ракеты до выхода за орбиту. Радар широко применяется в военных целях, поскольку он может предупредить о приближении вражеских ракет, самолётов или субмарин. Работа радара похожа на звуковое эхо, он обнаруживает объекты, посылая в их сторону микроволны. Передатчик радара направляет микроволны в небо. Когда волны натыкаются на какое-то препятствие, например, на самолёт, часть их отражается назад, к радарной тарелке, она передаёт их на приёмное устройство, которое преобразует волны в электрический сигнал. Учитывая промежуток времени, который понадобился для возвращения отражённых волн, лазерная установка определяет расстояние до самолёта. Местонахождение самолёта высвечивается как яркое или мигающее пятно на дисплее. Антенны радара вращаются так, чтобы охватить волнами весь горизонт. Почти все большие самолёты снабжены радарами, предупреждающими их о находящихся поблизости самолётах и о надвигающемся шторме. Радар на борту корабля посылает микроволны вдоль поверхности воды так, чтобы они отразились от любого корабля или неожиданного препятствия на пути судна. Первую радарную установку создал учёный Роберт Ватсон-Ватт. В 1935 году Британское правительство поручило Ватсон-Ватту изобрести «лучи смерти» для отражения атак вражеских самолётов. Это оказалось невозможным, но, исследуя данную идею, учёный изобрёл радар для обнаружения вражеских самолётов. Многие люди считают, что радар сыграл очень важную роль во Второй мировой войне.
+        """.trimIndent()
+    )
+
+    val breakWords = listOf(
+        listOf("на новой"),
+        listOf("которые поступали в", "290000"),
+        listOf("сигнал.")
+    )
+
+    val keyWords = listOf(
+        listOf(
+            "Зелёные растения", "производстводить свою пищю", "фотосинтеза", "фотосинтезом", "энергию Солнца", "кислород",
+            "углекислый газ", "минералы почвы", "жизнь на суше", "водоросли", "корень", "стебель",
+            "лишайники", "мхи", "папоротники", "формирование почвы", "растительное сообщество",
+            "разнообразие видов", "тропические леса", "угроза со стороны человека"
+        ),
+        listOf(
+            "радиоволны", "микрофон", "электрический сигнал", "передатчик", "приёмник",
+            "громкоговоритель", "манипулирование амплитудой", "частота", "килогерцы", "мегагерцы",
+            "двустороннее радио", "радиотелефон", "навигация самолётов и кораблей", "телевидение",
+            "дистанционное управление", "скорость распространения волн"
+        ),
+        listOf(
+            "радар", "обнаружение объектов", "авиадиспетчер", "прогноз погоды", "микроволны",
+            "эхо-сигнал", "приёмное устройство", "определение расстояния", "дисплей", "военное применение",
+            "предупреждение о приближении", "Роберт Ватсон-Ватт", "Вторая мировая война", "первый радар"
+        )
+    )
+}package com.example.scorochenie
+
+import android.animation.ValueAnimator
+import android.graphics.Color
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.BackgroundColorSpan
+import android.text.style.StyleSpan
+import android.util.Log
+import android.view.View
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.core.animation.addListener
+import kotlin.random.Random
+
+class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
+    private var currentWordIndex = 0
+    private var selectedTextIndex = 0
+    private var fullText: String = ""
+    private var currentPartText: String = ""
+    private var animator: ValueAnimator? = null
+    private var allWords: List<String> = emptyList()
+    private var scrollView: ScrollView? = null
+    private var lastScrollY: Int = 0
+
+    override val description: SpannableString
+        get() {
+            val text = "Слова наоборот — это техника скорочтения, при которой буквы в словах читаются справа налево, но предложения — слева направо. Метод тренирует внимание и произвольность движения глаз.\n" +
+                    "Для применения техники читайте предложения слева направо, переворачивая буквы каждого слова в уме.\n" +
+                    "Сосредоточьтесь на разбиении слов на буквы и их правильной сборке, чтобы улучшить навыки чтения."
+            val spannable = SpannableString(text)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("читайте предложения слева направо"), text.indexOf("читайте предложения слева направо") + "читайте предложения слева направо".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("переворачивая буквы"), text.indexOf("переворачивая буквы") + "переворачивая буквы".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            return spannable
+        }
+
+    override fun startAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
+        val originalText = TextResources.sampleTexts[selectedTextIndex]
+        fullText = reverseWords(originalText).replace("\n", " ")
+        currentWordIndex = 0
+        lastScrollY = 0
+
+        scrollView = textView.parent as? ScrollView
+        Log.d("WordReverse", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
+        if (scrollView == null) {
+            Log.e("WordReverse", "TextView is not inside a ScrollView, scrolling will not work")
+        } else {
+            Log.d("WordReverse", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
+        }
+
+        textView.gravity = android.view.Gravity.TOP
+        textView.isSingleLine = false
+        textView.maxLines = Int.MAX_VALUE
+        textView.post {
+            showNextTextPart(textView, guideView, onAnimationEnd)
+        }
+    }
+
+    private fun showNextTextPart(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        currentPartText = fullText
+        allWords = currentPartText.split("\\s+".toRegex()).filter { it.isNotEmpty() }
+        currentWordIndex = 0
+
+        textView.text = currentPartText
+
+        Log.d("WordReverse", "Showing full text: '$currentPartText'")
+
+        textView.post {
+            animateNextWord(textView, guideView, onAnimationEnd)
+        }
+    }
+
+    private fun reverseWords(text: String): String {
+        val tokenRegex = Regex("""\w+|[^\s\w]""")
+        val tokens = tokenRegex.findAll(text).map { it.value }.toList()
+
+        val result = StringBuilder()
+        var i = 0
+
+        while (i < tokens.size) {
+            val token = tokens[i]
+
+            if (token.any { it.isLetterOrDigit() }) {
+                val word = token
+                val punctuations = mutableListOf<String>()
+
+                var j = i + 1
+                while (j < tokens.size && !tokens[j].any { it.isLetterOrDigit() }) {
+                    punctuations.add(tokens[j])
+                    j++
+                }
+
+                val reversedWord = word.reversed()
+                result.append(reversedWord)
+                punctuations.forEach { result.append(it) }
+
+                if (j < tokens.size) {
+                    result.append(" ")
+                }
+
+                i = j
+            } else {
+                i++
+            }
+        }
+
+        return result.toString().trim()
+    }
+
+    private fun animateNextWord(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        if (currentWordIndex >= allWords.size) {
+            guideView.visibility = View.INVISIBLE
+            Log.d("WordReverse", "Text ended, stopping animation")
+            animator?.cancel()
+            textView.text = currentPartText
+            onAnimationEnd()
+            return
+        }
+
+        highlightWord(textView)
+        startWordAnimation(textView, guideView, onAnimationEnd)
+    }
+
+    private fun highlightWord(textView: TextView) {
+        val spannable = SpannableString(currentPartText)
+        val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+        for (span in existingSpans) {
+            spannable.removeSpan(span)
+        }
+
+        val (startIndex, word) = getWordPosition(currentWordIndex)
+        if (startIndex >= 0 && startIndex < currentPartText.length) {
+            val endIndex = startIndex + word.length
+            spannable.setSpan(
+                BackgroundColorSpan(Color.YELLOW),
+                startIndex,
+                endIndex,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            Log.d("WordReverse", "Highlighting word: '$word', start=$startIndex, end=$endIndex")
+        } else {
+            Log.e("WordReverse", "Invalid word start index: $startIndex for word: '$word'")
+        }
+
+        textView.text = spannable
+    }
+
+    private fun getWordPosition(wordIndex: Int): Pair<Int, String> {
+        var startIndex = 0
+        var wordCount = 0
+        allWords.forEachIndexed { index, word ->
+            if (wordCount == wordIndex) {
+                return Pair(startIndex, word)
+            }
+            startIndex += word.length
+            if (startIndex < currentPartText.length && currentPartText[startIndex] == ' ') {
+                startIndex++
+            }
+            wordCount++
+        }
+        return Pair(-1, "")
+    }
+
+    private fun startWordAnimation(
+        textView: TextView,
+        guideView: View,
+        onAnimationEnd: () -> Unit
+    ) {
+        guideView.visibility = View.VISIBLE
+        animator?.cancel()
+
+        val layout = textView.layout
+        if (layout == null) {
+            Log.e("WordReverse", "TextView layout is null")
+            textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
+            return
+        }
+
+        val (wordStartIndex, word) = getWordPosition(currentWordIndex)
+        if (wordStartIndex < 0 || wordStartIndex >= currentPartText.length) {
+            Log.e("WordReverse", "Invalid wordStartIndex: $wordStartIndex for word: '$word'")
+            currentWordIndex++
+            animateNextWord(textView, guideView, onAnimationEnd)
+            return
+        }
+
+        val wordEndIndex = wordStartIndex + word.length
+        if (wordEndIndex > currentPartText.length) {
+            Log.e("WordReverse", "Invalid wordEndIndex: $wordEndIndex for word: '$word'")
+            currentWordIndex++
+            animateNextWord(textView, guideView, onAnimationEnd)
+            return
+        }
+
+        val startLine = layout.getLineForOffset(wordStartIndex)
+        val endLine = layout.getLineForOffset(wordEndIndex)
+        val startX = layout.getPrimaryHorizontal(wordStartIndex)
+        var endX = layout.getPrimaryHorizontal(wordEndIndex)
+        if (endX == startX) {
+            endX = startX + layout.getPrimaryHorizontal(wordStartIndex + 1)
+        }
+        val lineTop = layout.getLineTop(startLine).toFloat()
+        val lineBottom = layout.getLineBottom(startLine).toFloat()
+        val lineY = (lineTop + lineBottom) / 2 // Середина строки для guideView
+
+        // Прокрутка ScrollView
+        scrollView?.let { sv ->
+            sv.post {
+                val scrollViewHeight = sv.height
+                val currentScrollY = sv.scrollY
+                val lineTopPosition = layout.getLineTop(startLine)
+                val lineBottomPosition = layout.getLineBottom(startLine)
+
+                // Определяем видимую область (верхняя треть экрана)
+                val visibleTop = currentScrollY
+                val visibleBottom = currentScrollY + scrollViewHeight * 2 / 3
+
+                // Прокручиваем, если строка не полностью видна
+                if (lineTopPosition < visibleTop || lineBottomPosition > visibleBottom) {
+                    // Цель: поставить строку в верхнюю треть экрана
+                    val targetScrollY = (lineTopPosition - scrollViewHeight / 3).coerceAtLeast(0).toInt()
+                    if (targetScrollY != lastScrollY) {
+                        Log.d("WordReverse", "Attempting scroll for line $startLine, word='$word'")
+                        Log.d("WordReverse", "Scroll parameters: line=$startLine, word='$word', lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
+                        // Плавная прокрутка
+                        ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
+                            duration = 500L // Длительность анимации прокрутки
+                            addUpdateListener { animation ->
+                                val value = animation.animatedValue as Int
+                                sv.scrollTo(0, value)
+                            }
+                            addListener(
+                                onEnd = {
+                                    lastScrollY = targetScrollY
+                                    Log.d("WordReverse", "Scrolled to line $startLine, targetScrollY=$targetScrollY, currentScrollY=${sv.scrollY}")
+                                }
+                            )
+                            start()
+                        }
+                    } else {
+                        Log.d("WordReverse", "No scroll needed, already at target: line=$startLine, word='$word', targetScrollY=$targetScrollY")
+                    }
+                } else {
+                    Log.d("WordReverse", "No scroll needed, line $startLine is visible, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, visibleTop=$visibleTop, visibleBottom=$visibleBottom")
+                }
+
+                sv.postDelayed({
+                    Log.d("WordReverse", "After scroll check, currentScrollY=${sv.scrollY}, textViewHeight=${textView.height}, scrollViewHeight=$scrollViewHeight")
+                }, 100)
+            }
+        } ?: Log.e("WordReverse", "ScrollView is null, cannot scroll to line $startLine for word '$word'")
+
+        Log.d("WordReverse", "Animating word: '$word' at position $currentWordIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine")
+
+        animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 300L
+            addUpdateListener { animation ->
+                val fraction = animation.animatedValue as Float
+                val currentX = startX + (endX - startX) * fraction
+                guideView.translationX = currentX - (guideView.width / 2) + textView.left
+                guideView.translationY = lineY + textView.top.toFloat() - (scrollView?.scrollY?.toFloat() ?: 0f)
+            }
+            addListener(
+                onEnd = {
+                    currentWordIndex++
+                    Log.d("WordReverse", "Word animation ended, currentWordIndex=$currentWordIndex")
+                    animateNextWord(textView, guideView, onAnimationEnd)
+                }
+            )
+            start()
+        }
+    }
+}

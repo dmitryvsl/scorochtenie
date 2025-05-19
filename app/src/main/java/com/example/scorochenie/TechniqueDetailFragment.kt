@@ -1,6 +1,7 @@
 package com.example.scorochenie
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -46,6 +47,7 @@ class TechniqueDetailFragment : Fragment() {
                 override fun startAnimation(
                     textView: TextView,
                     guideView: View,
+                    durationPerWord: Long,
                     onAnimationEnd: () -> Unit
                 ) {
                     textView.text = "Анимация для этой техники недоступна"
@@ -71,6 +73,7 @@ class TechniqueDetailFragment : Fragment() {
                 setMargins(0, 0, 0, 0)
             }
             setBackgroundColor(android.graphics.Color.BLACK)
+            Log.d("TechniqueDetail", "guideView initialized with visibility=$visibility")
         }
 
         // Выбираем нужный контейнер и TextView
@@ -100,22 +103,31 @@ class TechniqueDetailFragment : Fragment() {
                 val diagonalLineView = diagonalContainer.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
                 if (technique is DiagonalReadingTechnique && diagonalLineView != null) {
                     diagonalLineView.visibility = View.VISIBLE
+                    Log.d("TechniqueDetail", "DiagonalLineView set to VISIBLE")
                 } else {
                     diagonalLineView?.visibility = View.GONE
+                    Log.d("TechniqueDetail", "DiagonalLineView set to GONE")
                 }
 
                 // Добавляем guideView в активный контейнер
                 val activeContainer = if (technique is DiagonalReadingTechnique) diagonalContainer else scrollContainer
                 if (guideView.parent == null) {
                     activeContainer.addView(guideView)
+                    Log.d("TechniqueDetail", "guideView added to activeContainer, visibility=${guideView.visibility}")
                 }
 
+                // Устанавливаем значение durationPerWord по умолчанию (400 WPM)
+                val defaultDurationPerWord = 400L
+                Log.d("TechniqueDetail", "Starting animation with default durationPerWord=$defaultDurationPerWord WPM")
+
                 animationTextView?.let { textView ->
-                    technique.startAnimation(textView, guideView) {
+                    technique.startAnimation(textView, guideView, defaultDurationPerWord) {
                         val parent = guideView.parent as? ViewGroup
                         parent?.removeView(guideView)
                         animationTextView?.visibility = View.VISIBLE
                         backButton.visibility = View.VISIBLE
+                        guideView.visibility = View.INVISIBLE
+                        Log.d("TechniqueDetail", "Animation ended, guideView removed and set to INVISIBLE")
                     }
                 }
             }
@@ -125,6 +137,8 @@ class TechniqueDetailFragment : Fragment() {
             startButton.visibility = View.GONE
             val diagonalLineView = diagonalContainer.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
             diagonalLineView?.visibility = View.GONE
+            guideView.visibility = View.INVISIBLE
+            Log.d("TechniqueDetail", "No animation, guideView set to INVISIBLE")
         }
 
         backButton.setOnClickListener {
@@ -139,6 +153,8 @@ class TechniqueDetailFragment : Fragment() {
         // Очистка guideView
         val parent = guideView.parent as? ViewGroup
         parent?.removeView(guideView)
+        guideView.visibility = View.INVISIBLE
+        Log.d("TechniqueDetail", "onDestroyView: guideView removed and set to INVISIBLE")
         animationTextView = null
         scrollView = null
     }

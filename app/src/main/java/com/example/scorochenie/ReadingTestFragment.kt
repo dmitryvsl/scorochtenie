@@ -42,6 +42,7 @@ class ReadingTestFragment : Fragment() {
 
         val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
         durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
+        Log.d("ReadingTest", "Received techniqueName=$techniqueName, durationPerWord=$durationPerWord")
 
         // Определяем, какую технику используем
         technique = when (techniqueName) {
@@ -52,7 +53,7 @@ class ReadingTestFragment : Fragment() {
             "SentenceReverseTechnique" -> SentenceReverseTechnique()
             "WordReverseTechnique" -> WordReverseTechnique()
             else -> object : ReadingTechnique("Неизвестная техника") {
-                override fun startAnimation(textView: android.widget.TextView, guideView: View, onAnimationEnd: () -> Unit) {
+                override fun startAnimation(textView: android.widget.TextView, guideView: View, durationPerWord: Long, onAnimationEnd: () -> Unit) {
                     textView.text = "Анимация недоступна"
                     guideView.visibility = View.INVISIBLE
                     onAnimationEnd()
@@ -74,7 +75,7 @@ class ReadingTestFragment : Fragment() {
 
     private fun startReadingAnimation(textView: android.widget.TextView) {
         val guideView = View(requireContext()).apply {
-            visibility = View.INVISIBLE // Устанавливаем невидимость при создании
+            visibility = View.INVISIBLE
             layoutParams = FrameLayout.LayoutParams(20, 2)
             setBackgroundColor(android.graphics.Color.BLACK)
             Log.d("ReadingTest", "guideView created with visibility=$visibility")
@@ -89,7 +90,7 @@ class ReadingTestFragment : Fragment() {
             Log.d("ReadingTest", "guideView added to scrollContainer, visibility=${guideView.visibility}")
         }
 
-        technique.startAnimation(textView, guideView) {
+        technique.startAnimation(textView, guideView, durationPerWord) {
             // Удаляем guideView из соответствующего контейнера
             if (technique is DiagonalReadingTechnique) {
                 binding.diagonalContainer.removeView(guideView)

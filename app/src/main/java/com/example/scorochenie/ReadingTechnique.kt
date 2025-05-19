@@ -6,11 +6,12 @@ import android.widget.TextView
 
 abstract class ReadingTechnique(val name: String) {
     open val description: SpannableString
-        get() = SpannableString("Описание техники в разработке")
+        get() = SpannableString(name)
 
     abstract fun startAnimation(
         textView: TextView,
         guideView: View,
+        durationPerWord: Long, // Добавляем параметр для скорости
         onAnimationEnd: () -> Unit
     )
 }

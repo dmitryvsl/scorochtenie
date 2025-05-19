@@ -12,6 +12,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.animation.addListener
 import kotlin.random.Random
+import kotlin.math.min
 
 class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\"") {
     private var currentBlockIndex = 0
@@ -40,12 +41,17 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
     override fun startAnimation(
         textView: TextView,
         guideView: View,
+        durationPerWord: Long,
         onAnimationEnd: () -> Unit
     ) {
         selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
         fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
         currentBlockIndex = 0
         lastScrollY = 0
+
+        // Преобразуем WPM в миллисекунды на слово
+        val wordDurationMs = (60_000 / durationPerWord).coerceAtLeast(50L)
+        Log.d("BlockReading", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms")
 
         scrollView = textView.parent as? ScrollView
         Log.d("BlockReading", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
@@ -59,13 +65,14 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
         textView.isSingleLine = false
         textView.maxLines = Int.MAX_VALUE
         textView.post {
-            showNextTextPart(textView, guideView, onAnimationEnd)
+            showNextTextPart(textView, guideView, wordDurationMs, onAnimationEnd)
         }
     }
 
     private fun showNextTextPart(
         textView: TextView,
         guideView: View,
+        wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
         currentPartText = fullText
@@ -82,13 +89,14 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
             Log.d("BlockReading", "Showing full text: '$currentPartText', lineCount=$lineCount")
             Log.d("BlockReading", "Lines: ${lines.map { currentPartText.substring(it.first, it.last) }.joinToString(" | ")}")
 
-            animateNextBlock(textView, guideView, onAnimationEnd)
+            animateNextBlock(textView, guideView, wordDurationMs, onAnimationEnd)
         }
     }
 
     private fun animateNextBlock(
         textView: TextView,
         guideView: View,
+        wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
         if (currentBlockIndex * 2 >= lineCount) {
@@ -100,11 +108,11 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
             return
         }
 
-        highlightBlock(textView)
-        startBlockAnimation(textView, guideView, onAnimationEnd)
+        val (wordCountInBlock, firstLineWordCount, secondLineWordCount) = highlightBlock(textView)
+        startBlockAnimation(textView, guideView, wordDurationMs, wordCountInBlock, firstLineWordCount, secondLineWordCount, onAnimationEnd)
     }
 
-    private fun highlightBlock(textView: TextView) {
+    private fun highlightBlock(textView: TextView): Triple<Int, Int, Int> {
         val spannable = SpannableString(currentPartText)
         val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
         for (span in existingSpans) {
@@ -112,9 +120,23 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
         }
 
         val firstLineIndex = currentBlockIndex * 2
-        val secondLineIndex = minOf(firstLineIndex + 1, lineCount - 1)
+        val secondLineIndex = min(firstLineIndex + 1, lineCount - 1)
         val startIndex = lines[firstLineIndex].first
         val endIndex = lines[secondLineIndex].last
+
+        // Подсчитываем количество слов в блоке и в каждой строке
+        val blockText = currentPartText.substring(startIndex, endIndex)
+        val wordCountInBlock = blockText.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
+
+        val firstLineText = currentPartText.substring(lines[firstLineIndex].first, lines[firstLineIndex].last)
+        val firstLineWordCount = firstLineText.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
+
+        val secondLineText = if (secondLineIndex > firstLineIndex) {
+            currentPartText.substring(lines[secondLineIndex].first, lines[secondLineIndex].last)
+        } else {
+            ""
+        }
+        val secondLineWordCount = secondLineText.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
 
         if (startIndex < spannable.length && endIndex <= spannable.length) {
             spannable.setSpan(
@@ -123,47 +145,72 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
                 endIndex,
                 Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             )
-            Log.d("BlockReading", "Highlighting block: lines $firstLineIndex-$secondLineIndex, start=$startIndex, end=$endIndex, text='${currentPartText.substring(startIndex, endIndex)}'")
+            Log.d("BlockReading", "Highlighting block: lines $firstLineIndex-$secondLineIndex, start=$startIndex, end=$endIndex, text='$blockText', wordCount=$wordCountInBlock, firstLineWords=$firstLineWordCount, secondLineWords=$secondLineWordCount")
+        } else {
+            Log.e("BlockReading", "Invalid block indices: start=$startIndex, end=$endIndex, spannable.length=${spannable.length}")
         }
 
         textView.text = spannable
+        return Triple(wordCountInBlock, firstLineWordCount, secondLineWordCount)
     }
 
     private fun startBlockAnimation(
         textView: TextView,
         guideView: View,
+        wordDurationMs: Long,
+        wordCountInBlock: Int,
+        firstLineWordCount: Int,
+        secondLineWordCount: Int,
         onAnimationEnd: () -> Unit
     ) {
-        guideView.visibility = View.VISIBLE
+        guideView.visibility = View.INVISIBLE
         animator?.cancel()
 
         val layout = textView.layout
         if (layout == null) {
             Log.e("BlockReading", "TextView layout is null")
-            textView.postDelayed({ animateNextBlock(textView, guideView, onAnimationEnd) }, 200)
+            textView.postDelayed({ animateNextBlock(textView, guideView, wordDurationMs, onAnimationEnd) }, 200)
             return
         }
 
         val firstLineIndex = currentBlockIndex * 2
-        val secondLineIndex = minOf(firstLineIndex + 1, lineCount - 1)
+        val secondLineIndex = min(firstLineIndex + 1, lineCount - 1)
         val startIndex = lines[firstLineIndex].first
         val endIndex = lines[secondLineIndex].last
 
-        val startLine = firstLineIndex
-        val endLine = secondLineIndex
-        val startX = layout.getLineLeft(startLine)
-        val endX = layout.getLineRight(endLine)
-        val lineTop = layout.getLineTop(startLine).toFloat()
-        val blockHeight = layout.getLineBottom(endLine) - layout.getLineTop(startLine)
-        val lineY = lineTop + (blockHeight / 2)
+        // Позиции для первой строки
+        val firstLineStartX = layout.getLineLeft(firstLineIndex)
+        val firstLineEndX = layout.getLineRight(firstLineIndex)
+        val firstLineTop = layout.getLineTop(firstLineIndex).toFloat()
+        val firstLineBottom = layout.getLineBottom(firstLineIndex).toFloat()
+        val firstLineY = (firstLineTop + firstLineBottom) / 2
+
+        // Позиции для второй строки
+        val secondLineStartX = layout.getLineLeft(secondLineIndex)
+        val secondLineEndX = layout.getLineRight(secondLineIndex)
+        val secondLineTop = layout.getLineTop(secondLineIndex).toFloat()
+        val secondLineBottom = layout.getLineBottom(secondLineIndex).toFloat()
+        val secondLineY = (secondLineTop + secondLineBottom) / 2
+
+        // Рассчитываем длительность анимации блока
+        val blockDurationMs = (wordCountInBlock * wordDurationMs).coerceAtLeast(50L)
+
+        // Распределяем длительность между строками пропорционально количеству слов
+        val totalWords = firstLineWordCount + secondLineWordCount
+        val firstLineDuration = if (totalWords > 0) {
+            (blockDurationMs * firstLineWordCount / totalWords.toFloat()).toLong().coerceAtLeast(50L)
+        } else {
+            blockDurationMs / 2
+        }
+        val secondLineDuration = (blockDurationMs - firstLineDuration).coerceAtLeast(50L)
 
         // Прокрутка ScrollView
         scrollView?.let { sv ->
             sv.post {
                 val scrollViewHeight = sv.height
                 val currentScrollY = sv.scrollY
-                val lineTopPosition = layout.getLineTop(startLine)
-                val lineBottomPosition = layout.getLineBottom(endLine)
+                val lineTopPosition = layout.getLineTop(firstLineIndex)
+                val lineBottomPosition = layout.getLineBottom(secondLineIndex)
 
                 // Определяем видимую область (верхняя треть экрана)
                 val visibleTop = currentScrollY
@@ -174,11 +221,11 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
                     // Цель: поставить верх блока в верхнюю треть экрана
                     val targetScrollY = (lineTopPosition - scrollViewHeight / 3).coerceAtLeast(0).toInt()
                     if (targetScrollY != lastScrollY) {
-                        Log.d("BlockReading", "Attempting scroll for block $currentBlockIndex, lines $startLine-$endLine")
+                        Log.d("BlockReading", "Attempting scroll for block $currentBlockIndex, lines $firstLineIndex-$secondLineIndex")
                         Log.d("BlockReading", "Scroll parameters: block=$currentBlockIndex, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
                         // Плавная прокрутка
                         ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
-                            duration = 500L // Длительность анимации прокрутки
+                            duration = blockDurationMs / 2 // Прокрутка быстрее анимации блока
                             addUpdateListener { animation ->
                                 val value = animation.animatedValue as Int
                                 sv.scrollTo(0, value)
@@ -204,21 +251,37 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
             }
         } ?: Log.e("BlockReading", "ScrollView is null, cannot scroll to block $currentBlockIndex")
 
-        Log.d("BlockReading", "Animating block: $currentBlockIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine")
+        Log.d("BlockReading", "Animating block: $currentBlockIndex, firstLine: startX=$firstLineStartX, endX=$firstLineEndX, y=$firstLineY, duration=$firstLineDuration ms; secondLine: startX=$secondLineStartX, endX=$secondLineEndX, y=$secondLineY, duration=$secondLineDuration ms; wordCount=$wordCountInBlock, totalDuration=$blockDurationMs ms")
 
+        // Анимация первой строки
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 600L
+            duration = firstLineDuration
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
-                val currentX = startX + (endX - startX) * fraction
+                val currentX = firstLineStartX + (firstLineEndX - firstLineStartX) * fraction
                 guideView.translationX = currentX - (guideView.width / 2) + textView.left
-                guideView.translationY = lineY + textView.top.toFloat() - (scrollView?.scrollY?.toFloat() ?: 0f)
+                guideView.translationY = firstLineY + textView.top.toFloat() - (scrollView?.scrollY?.toFloat() ?: 0f)
             }
             addListener(
                 onEnd = {
-                    currentBlockIndex++
-                    Log.d("BlockReading", "Block animation ended, currentBlockIndex=$currentBlockIndex")
-                    animateNextBlock(textView, guideView, onAnimationEnd)
+                    // Анимация второй строки
+                    animator = ValueAnimator.ofFloat(0f, 1f).apply {
+                        duration = secondLineDuration
+                        addUpdateListener { animation ->
+                            val fraction = animation.animatedValue as Float
+                            val currentX = secondLineStartX + (secondLineEndX - secondLineStartX) * fraction
+                            guideView.translationX = currentX - (guideView.width / 2) + textView.left
+                            guideView.translationY = secondLineY + textView.top.toFloat() - (scrollView?.scrollY?.toFloat() ?: 0f)
+                        }
+                        addListener(
+                            onEnd = {
+                                currentBlockIndex++
+                                Log.d("BlockReading", "Block animation ended, currentBlockIndex=$currentBlockIndex")
+                                animateNextBlock(textView, guideView, wordDurationMs, onAnimationEnd)
+                            }
+                        )
+                        start()
+                    }
                 }
             )
             start()

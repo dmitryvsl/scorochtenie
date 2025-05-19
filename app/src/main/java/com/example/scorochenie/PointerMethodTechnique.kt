@@ -39,12 +39,17 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
     override fun startAnimation(
         textView: TextView,
         guideView: View,
+        durationPerWord: Long, // Добавляем параметр скорости
         onAnimationEnd: () -> Unit
     ) {
         selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
         fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
         currentWordIndex = 0
         lastScrollY = 0
+
+        // Преобразуем WPM в миллисекунды на слово
+        val wordDurationMs = (60_000 / durationPerWord).coerceAtLeast(50L) // Минимум 50 мс
+        Log.d("PointerMethod", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms")
 
         scrollView = textView.parent as? ScrollView
         Log.d("PointerMethod", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
@@ -58,28 +63,30 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
         textView.isSingleLine = false
         textView.maxLines = Int.MAX_VALUE
         textView.post {
-            showNextTextPart(textView, guideView, onAnimationEnd)
+            showNextTextPart(textView, guideView, wordDurationMs, onAnimationEnd)
         }
     }
 
     private fun showNextTextPart(
         textView: TextView,
         guideView: View,
+        wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
         currentPartText = fullText
         currentPartWords = currentPartText.split("\\s+".toRegex()).filter { it.isNotEmpty() }
         currentWordIndex = 0
 
-        Log.d("PointerMethod", "Showing full text: '$currentPartText'")
+        Log.d("PointerMethod", "Showing full text: '$currentPartText', wordCount=${currentPartWords.size}")
 
         textView.text = currentPartText
-        animateNextWord(textView, guideView, onAnimationEnd)
+        animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
     }
 
     private fun animateNextWord(
         textView: TextView,
         guideView: View,
+        wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
         if (currentWordIndex >= currentPartWords.size) {
@@ -92,7 +99,7 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
         }
 
         highlightWord(textView)
-        startWordAnimation(textView, guideView, onAnimationEnd)
+        startWordAnimation(textView, guideView, wordDurationMs, onAnimationEnd)
     }
 
     private fun highlightWord(textView: TextView) {
@@ -129,15 +136,16 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
     private fun startWordAnimation(
         textView: TextView,
         guideView: View,
+        wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
-        guideView.visibility = View.VISIBLE
+        guideView.visibility = View.INVISIBLE
         animator?.cancel()
 
         val layout = textView.layout
         if (layout == null) {
             Log.e("PointerMethod", "TextView layout is null")
-            textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
+            textView.postDelayed({ animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd) }, 200)
             return
         }
 
@@ -147,7 +155,7 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
         if (wordStartIndex < 0 || wordStartIndex >= currentPartText.length) {
             Log.e("PointerMethod", "Invalid wordStartIndex: $wordStartIndex")
             currentWordIndex++
-            animateNextWord(textView, guideView, onAnimationEnd)
+            animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
             return
         }
 
@@ -183,7 +191,7 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
                         Log.d("PointerMethod", "Scroll parameters: line=$startLine, word='${currentPartWords[currentWordIndex]}', lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
                         // Плавная прокрутка
                         ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
-                            duration = 500L // Длительность анимации прокрутки
+                            duration = wordDurationMs / 2 // Прокрутка быстрее анимации слова
                             addUpdateListener { animation ->
                                 val value = animation.animatedValue as Int
                                 sv.scrollTo(0, value)
@@ -209,10 +217,10 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
             }
         } ?: Log.e("PointerMethod", "ScrollView is null, cannot scroll to line $startLine for word '${currentPartWords[currentWordIndex]}'")
 
-        Log.d("PointerMethod", "Animating word: '${currentPartWords[currentWordIndex]}' at position $currentWordIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine")
+        Log.d("PointerMethod", "Animating word: '${currentPartWords[currentWordIndex]}' at position $currentWordIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine, duration=$wordDurationMs ms")
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 300L
+            duration = wordDurationMs
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
                 val currentX = startX + (endX - startX) * fraction
@@ -223,7 +231,7 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
                 onEnd = {
                     currentWordIndex++
                     Log.d("PointerMethod", "Word animation ended, currentWordIndex=$currentWordIndex")
-                    animateNextWord(textView, guideView, onAnimationEnd)
+                    animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
                 }
             )
             start()

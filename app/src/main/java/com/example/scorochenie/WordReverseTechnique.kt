@@ -38,6 +38,7 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
     override fun startAnimation(
         textView: TextView,
         guideView: View,
+        durationPerWord: Long,
         onAnimationEnd: () -> Unit
     ) {
         selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
@@ -45,6 +46,10 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
         fullText = reverseWords(originalText).replace("\n", " ")
         currentWordIndex = 0
         lastScrollY = 0
+
+        // Преобразуем WPM в миллисекунды на слово
+        val wordDurationMs = (60_000 / durationPerWord).coerceAtLeast(50L)
+        Log.d("WordReverse", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms")
 
         scrollView = textView.parent as? ScrollView
         Log.d("WordReverse", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
@@ -58,13 +63,14 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
         textView.isSingleLine = false
         textView.maxLines = Int.MAX_VALUE
         textView.post {
-            showNextTextPart(textView, guideView, onAnimationEnd)
+            showNextTextPart(textView, guideView, wordDurationMs, onAnimationEnd)
         }
     }
 
     private fun showNextTextPart(
         textView: TextView,
         guideView: View,
+        wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
         currentPartText = fullText
@@ -73,10 +79,10 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
 
         textView.text = currentPartText
 
-        Log.d("WordReverse", "Showing full text: '$currentPartText'")
+        Log.d("WordReverse", "Showing full text: '$currentPartText', wordCount=${allWords.size}")
 
         textView.post {
-            animateNextWord(textView, guideView, onAnimationEnd)
+            animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
         }
     }
 
@@ -120,6 +126,7 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
     private fun animateNextWord(
         textView: TextView,
         guideView: View,
+        wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
         if (currentWordIndex >= allWords.size) {
@@ -132,7 +139,7 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
         }
 
         highlightWord(textView)
-        startWordAnimation(textView, guideView, onAnimationEnd)
+        startWordAnimation(textView, guideView, wordDurationMs, onAnimationEnd)
     }
 
     private fun highlightWord(textView: TextView) {
@@ -178,15 +185,16 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
     private fun startWordAnimation(
         textView: TextView,
         guideView: View,
+        wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
-        guideView.visibility = View.VISIBLE
+        guideView.visibility = View.INVISIBLE
         animator?.cancel()
 
         val layout = textView.layout
         if (layout == null) {
             Log.e("WordReverse", "TextView layout is null")
-            textView.postDelayed({ animateNextWord(textView, guideView, onAnimationEnd) }, 200)
+            textView.postDelayed({ animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd) }, 200)
             return
         }
 
@@ -194,7 +202,7 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
         if (wordStartIndex < 0 || wordStartIndex >= currentPartText.length) {
             Log.e("WordReverse", "Invalid wordStartIndex: $wordStartIndex for word: '$word'")
             currentWordIndex++
-            animateNextWord(textView, guideView, onAnimationEnd)
+            animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
             return
         }
 
@@ -202,7 +210,7 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
         if (wordEndIndex > currentPartText.length) {
             Log.e("WordReverse", "Invalid wordEndIndex: $wordEndIndex for word: '$word'")
             currentWordIndex++
-            animateNextWord(textView, guideView, onAnimationEnd)
+            animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
             return
         }
 
@@ -238,7 +246,7 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
                         Log.d("WordReverse", "Scroll parameters: line=$startLine, word='$word', lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
                         // Плавная прокрутка
                         ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
-                            duration = 500L // Длительность анимации прокрутки
+                            duration = wordDurationMs / 2 // Прокрутка быстрее анимации слова
                             addUpdateListener { animation ->
                                 val value = animation.animatedValue as Int
                                 sv.scrollTo(0, value)
@@ -264,10 +272,10 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
             }
         } ?: Log.e("WordReverse", "ScrollView is null, cannot scroll to line $startLine for word '$word'")
 
-        Log.d("WordReverse", "Animating word: '$word' at position $currentWordIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine")
+        Log.d("WordReverse", "Animating word: '$word' at position $currentWordIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine, duration=$wordDurationMs ms")
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 300L
+            duration = wordDurationMs
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
                 val currentX = startX + (endX - startX) * fraction
@@ -278,7 +286,7 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
                 onEnd = {
                     currentWordIndex++
                     Log.d("WordReverse", "Word animation ended, currentWordIndex=$currentWordIndex")
-                    animateNextWord(textView, guideView, onAnimationEnd)
+                    animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
                 }
             )
             start()

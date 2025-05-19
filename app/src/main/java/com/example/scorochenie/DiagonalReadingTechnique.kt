@@ -36,6 +36,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
     override fun startAnimation(
         textView: TextView,
         guideView: View,
+        durationPerWord: Long,
         onAnimationEnd: () -> Unit
     ) {
         selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
@@ -43,7 +44,10 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         currentPosition = 0
         breakWordIndex = 0
 
-        // Гарантируем, что guideView невидим
+        // Преобразуем WPM в миллисекунды на слово
+        val wordDurationMs = (60_000 / durationPerWord).coerceAtLeast(50L)
+        Log.d("DiagonalReading", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms")
+
         guideView.visibility = View.INVISIBLE
         Log.d("DiagonalReading", "startAnimation: guideView visibility=${guideView.visibility} (0=INVISIBLE, 8=VISIBLE)")
 
@@ -55,13 +59,14 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
             Log.d("DiagonalReading", "TextView size after post: ${textView.width}x${textView.height}")
             val parent = textView.parent as View
             Log.d("DiagonalReading", "FrameLayout size after text set: ${parent.width}x${parent.height}")
-            showNextTextPart(textView, guideView, onAnimationEnd)
+            showNextTextPart(textView, guideView, wordDurationMs, onAnimationEnd)
         }
     }
 
     private fun showNextTextPart(
         textView: TextView,
         guideView: View,
+        wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
         if (currentPosition >= fullText.length) {
@@ -96,7 +101,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
             if (diagonalLineView != null) {
                 diagonalLineView.requestLayout()
                 Log.d("DiagonalReading", "DiagonalLineView found, visibility=${diagonalLineView.visibility}")
-                startDiagonalAnimation(textView, guideView, breakPosition, partText, onAnimationEnd)
+                startDiagonalAnimation(textView, guideView, breakPosition, partText, wordDurationMs, onAnimationEnd)
             } else {
                 Log.e("DiagonalReading", "DiagonalLineView not found, skipping animation")
                 onAnimationEnd()
@@ -109,38 +114,68 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         guideView: View,
         newPosition: Int,
         partText: String,
+        wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
-        // Явно устанавливаем guideView невидимым
-        guideView.visibility = View.INVISIBLE
-        Log.d("DiagonalReading", "startDiagonalAnimation: guideView visibility=${guideView.visibility} (0=INVISIBLE, 8=VISIBLE)")
         animator?.cancel()
 
         val wordCount = partText.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
-        val durationPerWord = 40L
-        val totalDuration = wordCount * durationPerWord
+        val totalDuration = wordCount * wordDurationMs
 
-        animator = ValueAnimator.ofFloat(0f, 1f).apply {
+        Log.d("DiagonalReading", "Animating part with wordCount=$wordCount, wordDurationMs=$wordDurationMs, totalDuration=$totalDuration ms")
+
+        // Получаем layout и проверяем его готовность
+        val layout = textView.layout
+        if (layout == null) {
+            Log.e("DiagonalReading", "TextView layout is null, retrying")
+            textView.requestLayout()
+            textView.postDelayed({ startDiagonalAnimation(textView, guideView, newPosition, partText, wordDurationMs, onAnimationEnd) }, 50)
+            return
+        }
+
+        val startOffsetX = 50f
+        val startOffsetY = 50f
+
+        // Рассчитываем параметры анимации
+        val width = textView.width.toFloat()
+        val visibleHeight = textView.height.toFloat()
+        val totalLines = layout.lineCount
+        val lastLineTop = if (totalLines > 1) layout.getLineTop(totalLines - 1) else visibleHeight
+        val heightExcludingLastLine = if (totalLines > 1) lastLineTop.toFloat() else visibleHeight
+        val fractionStart = (startOffsetY / heightExcludingLastLine).coerceIn(0f, 0.99f)
+
+        Log.d("DiagonalReading", "Starting animation with offsets: startOffsetX=$startOffsetX, startOffsetY=$startOffsetY, fractionStart=$fractionStart")
+
+        // Инициализируем guideView в заданной позиции
+        guideView.visibility = View.INVISIBLE
+        guideView.translationX = startOffsetX - (guideView.width / 2)
+        guideView.translationY = startOffsetY
+        Log.d("DiagonalReading", "Initial guideView position: x=${guideView.translationX}, y=${guideView.translationY}, visibility=${guideView.visibility}")
+
+        // Подсвечиваем первое слово в заданной позиции
+        val initialLine = highlightWordAtPosition(textView, startOffsetX, startOffsetY, -1)
+        Log.d("DiagonalReading", "Initial highlight called, currentLine=$initialLine")
+
+        animator = ValueAnimator.ofFloat(fractionStart, 1f).apply {
             duration = totalDuration
-            var lastLine = -1
+            startDelay = 0
+            var lastLine = initialLine
 
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
-                val width = textView.width.toFloat()
-                val visibleHeight = textView.height.toFloat()
+                // Нормализуем fraction для диапазона [0, 1]
+                val normalizedFraction = if (fractionStart < 1f) {
+                    ((fraction - fractionStart) / (1f - fractionStart)).coerceIn(0f, 1f)
+                } else {
+                    0f
+                }
 
-                val layout = textView.layout
-                val totalLines = layout?.lineCount ?: 1
-                val lastLineTop = if (totalLines > 1) layout.getLineTop(totalLines - 1) else visibleHeight
-                val heightExcludingLastLine = if (totalLines > 1) lastLineTop.toFloat() else visibleHeight
+                val y = startOffsetY + normalizedFraction * (heightExcludingLastLine - startOffsetY)
+                val x = startOffsetX + normalizedFraction * (width - startOffsetX)
 
-                val y = fraction * heightExcludingLastLine
-                val x = fraction * width
-
-                // Обновляем координаты guideView для расчётов, но он остаётся невидимым
                 guideView.translationX = x - (guideView.width / 2)
                 guideView.translationY = y
-                Log.d("DiagonalReading", "guideView position: x=$x, y=$y, fraction=$fraction, visibility=${guideView.visibility}")
+                Log.d("DiagonalReading", "guideView position: x=$x, y=$y, fraction=$fraction, normalizedFraction=$normalizedFraction, visibility=${guideView.visibility}")
 
                 val currentLine = highlightWordAtPosition(textView, x, y, lastLine)
                 if (currentLine != -1) lastLine = currentLine
@@ -153,7 +188,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
                     currentPosition = newPosition
                     breakWordIndex++
                     Log.d("DiagonalReading", "Animation ended, new currentPosition=$currentPosition, breakWordIndex=$breakWordIndex")
-                    showNextTextPart(textView, guideView, onAnimationEnd)
+                    showNextTextPart(textView, guideView, wordDurationMs, onAnimationEnd)
                 }
             )
             start()

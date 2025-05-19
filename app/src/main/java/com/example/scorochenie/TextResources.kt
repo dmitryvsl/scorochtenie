@@ -14,7 +14,7 @@ object TextResources {
     )
 
     val breakWords = listOf(
-        listOf("на новой"),
+        listOf(", распространёнными"),
         listOf("которые поступали в", "290000"),
         listOf("сигнал.")
     )

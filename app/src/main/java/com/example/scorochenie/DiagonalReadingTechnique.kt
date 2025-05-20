@@ -12,7 +12,6 @@ import android.view.animation.LinearInterpolator
 import android.widget.TextView
 import androidx.core.animation.addListener
 import kotlin.math.abs
-import kotlin.random.Random
 
 class DiagonalReadingTechnique : ReadingTechnique("Чтение по диагонали") {
     private var currentPosition = 0
@@ -43,7 +42,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
+        fullText = TextResources.diagonalTexts.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
         currentPosition = 0
         breakWordIndex = 0
 
@@ -80,7 +79,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
             return
         }
 
-        val currentBreakWords = TextResources.breakWords[selectedTextIndex]
+        val currentBreakWords = TextResources.diagonalTexts.getOrNull(selectedTextIndex)?.breakWords ?: emptyList()
         val breakWord = if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
         val breakPosition = if (breakWord.isNotEmpty()) {
             val index = fullText.indexOf(breakWord, currentPosition)
@@ -217,7 +216,7 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
 
             val charLeft = layout.getPrimaryHorizontal(offset)
             val charRight = if (offset + 1 < textView.text.length) layout.getPrimaryHorizontal(offset + 1) else charLeft
-            val charX = (charLeft + charRight) / 2
+            var charX = (charLeft + charRight) / 2
 
             val distance = abs(charX - expectedX)
             if (distance < minDistance) {

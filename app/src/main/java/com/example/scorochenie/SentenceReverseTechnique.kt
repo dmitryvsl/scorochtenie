@@ -45,7 +45,7 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        fullText = reverseSentences(TextResources.sampleTexts[selectedTextIndex]).replace("\n", " ")
+        fullText = reverseSentences(TextResources.otherTexts["Предложения наоборот"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: "")
         currentPosition = 0
         currentSentenceIndex = 0
         currentWordIndexInSentence = 0

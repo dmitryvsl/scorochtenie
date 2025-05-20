@@ -11,7 +11,6 @@ import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.animation.addListener
-import kotlin.random.Random
 import kotlin.math.min
 
 class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\"") {
@@ -43,28 +42,49 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
         selectedTextIndex: Int,
         onAnimationEnd: () -> Unit
     ) {
-        this.selectedTextIndex = selectedTextIndex
-        fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
-        currentBlockIndex = 0
-        lastScrollY = 0
+        try {
+            this.selectedTextIndex = selectedTextIndex
+            fullText = TextResources.otherTexts["Чтение \"блоками\""]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
+            if (fullText.isEmpty()) {
+                Log.e("BlockReading", "No text available for selectedTextIndex=$selectedTextIndex")
+                textView.text = "Текст недоступен"
+                onAnimationEnd()
+                return
+            }
 
-        // Преобразуем WPM в миллисекунды на слово
-        val wordDurationMs = (60_000 / durationPerWord).coerceAtLeast(50L)
-        Log.d("BlockReading", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms")
+            currentBlockIndex = 0
+            lastScrollY = 0
 
-        scrollView = textView.parent as? ScrollView
-        Log.d("BlockReading", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
-        if (scrollView == null) {
-            Log.e("BlockReading", "TextView is not inside a ScrollView, scrolling will not work")
-        } else {
-            Log.d("BlockReading", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
-        }
+            // Проверяем durationPerWord
+            if (durationPerWord <= 0) {
+                Log.e("BlockReading", "Invalid durationPerWord: $durationPerWord")
+                textView.text = "Ошибка: некорректная скорость чтения"
+                onAnimationEnd()
+                return
+            }
 
-        textView.gravity = android.view.Gravity.TOP
-        textView.isSingleLine = false
-        textView.maxLines = Int.MAX_VALUE
-        textView.post {
-            showNextTextPart(textView, guideView, wordDurationMs, onAnimationEnd)
+            // Преобразуем WPM в миллисекунды на слово
+            val wordDurationMs = (60_000 / durationPerWord).coerceAtLeast(50L)
+            Log.d("BlockReading", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms, selectedTextIndex=$selectedTextIndex, textLength=${fullText.length}")
+
+            scrollView = textView.parent as? ScrollView
+            Log.d("BlockReading", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
+            if (scrollView == null) {
+                Log.w("BlockReading", "TextView is not inside a ScrollView, scrolling will be disabled")
+            } else {
+                Log.d("BlockReading", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
+            }
+
+            textView.gravity = android.view.Gravity.TOP
+            textView.isSingleLine = false
+            textView.maxLines = Int.MAX_VALUE
+            textView.post {
+                showNextTextPart(textView, guideView, wordDurationMs, onAnimationEnd)
+            }
+        } catch (e: Exception) {
+            Log.e("BlockReading", "Error in startAnimation: ${e.message}", e)
+            textView.text = "Ошибка анимации"
+            onAnimationEnd()
         }
     }
 
@@ -78,14 +98,20 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
         textView.text = currentPartText
 
         textView.post {
-            val layout = textView.layout ?: return@post
+            val layout = textView.layout
+            if (layout == null) {
+                Log.e("BlockReading", "TextView layout is null in showNextTextPart")
+                textView.text = "Ошибка отображения текста"
+                onAnimationEnd()
+                return@post
+            }
             lineCount = layout.lineCount
             lines = (0 until lineCount).map { line ->
                 layout.getLineStart(line)..layout.getLineEnd(line)
             }
             currentBlockIndex = 0
 
-            Log.d("BlockReading", "Showing full text: '$currentPartText', lineCount=$lineCount")
+            Log.d("BlockReading", "Showing full text: '${currentPartText.take(50)}...', lineCount=$lineCount")
             Log.d("BlockReading", "Lines: ${lines.map { currentPartText.substring(it.first, it.last) }.joinToString(" | ")}")
 
             animateNextBlock(textView, guideView, wordDurationMs, onAnimationEnd)
@@ -248,7 +274,7 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
                     Log.d("BlockReading", "After scroll check, currentScrollY=${sv.scrollY}, textViewHeight=${textView.height}, scrollViewHeight=$scrollViewHeight")
                 }, 100)
             }
-        } ?: Log.e("BlockReading", "ScrollView is null, cannot scroll to block $currentBlockIndex")
+        }
 
         Log.d("BlockReading", "Animating block: $currentBlockIndex, firstLine: startX=$firstLineStartX, endX=$firstLineEndX, y=$firstLineY, duration=$firstLineDuration ms; secondLine: startX=$secondLineStartX, endX=$secondLineEndX, y=$secondLineY, duration=$secondLineDuration ms; wordCount=$wordCountInBlock, totalDuration=$blockDurationMs ms")
 

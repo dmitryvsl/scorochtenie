@@ -12,7 +12,6 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.animation.addListener
 import androidx.core.content.ContextCompat
-import kotlin.random.Random
 import android.graphics.Typeface
 
 class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых слов") {
@@ -46,13 +45,13 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
+        fullText = TextResources.keywordTexts.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
         currentWordIndex = 0
         lastScrollY = 0
 
         // Преобразуем WPM в миллисекунды на слово
         val wordDurationMs = (60_000 / durationPerWord).coerceAtLeast(50L)
-        Log.d("KeywordSearch", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms")
+        Log.d("KeywordSearch", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms, selectedTextIndex=$selectedTextIndex, textLength=${fullText.length}")
 
         scrollView = textView.parent as? ScrollView
         Log.d("KeywordSearch", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
@@ -80,7 +79,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
         currentPartWords = currentPartText.split("\\s+".toRegex()).filter { it.isNotEmpty() }
         currentWordIndex = 0
 
-        Log.d("KeywordSearch", "Showing full text: '$currentPartText', wordCount=${currentPartWords.size}")
+        Log.d("KeywordSearch", "Showing full text: '${currentPartText.take(50)}...', wordCount=${currentPartWords.size}")
 
         textView.text = currentPartText
         animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
@@ -123,7 +122,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
         }
 
         // Выделяем ключевые слова жирным шрифтом и цветом из ресурсов
-        val keyWords = TextResources.keyWords[selectedTextIndex]
+        val keyWords = TextResources.keywordTexts.getOrNull(selectedTextIndex)?.keyWords ?: emptyList()
         val foundKeyWords = mutableListOf<String>()
         keyWords.forEach { keyWord ->
             var startIndex = currentPartText.indexOf(keyWord, ignoreCase = false)
@@ -145,7 +144,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
                 startIndex = currentPartText.indexOf(keyWord, startIndex + 1, ignoreCase = false)
             }
         }
-        Log.d("KeywordSearch", "Found keywords in text: ${foundKeyWords.joinToString(",")}")
+        Log.d("KeywordSearch", "Found keywords in text: ${foundKeyWords.joinToString(", ")}, total=${foundKeyWords.size}")
 
         // Подсвечиваем текущее слово жёлтым фоном
         var startIndex = 0

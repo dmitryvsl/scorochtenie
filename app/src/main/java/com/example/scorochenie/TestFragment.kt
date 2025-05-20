@@ -2,6 +2,7 @@ package com.example.scorochenie
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -35,29 +36,6 @@ class TestFragment : Fragment() {
     private var currentTextIndex = 0
     private var techniqueName: String = ""
     private var durationPerWord: Long = 400L
-    private val questionsAndAnswers = mapOf(
-        0 to listOf(
-            "Как называется процесс, с помощью которого растения производят себе пищу?" to listOf("фотосинтез", "испарение", "брожение"),
-            "Какие три вещества растения используют для питания?" to listOf("вода, углекислый газ, минералы", "кислород, азот, свет", "белки, жиры, углеводы"),
-            "Кто был первым живым организмом, подготовившим почву для других растений?" to listOf("лишайники", "папоротники", "мхи"),
-            "Где на Земле встречается наибольшее разнообразие растений?" to listOf("тропические леса", "арктические пустыни", "горные вершины"),
-            "Что угрожает благополучию растений?" to listOf("деятельность человека", "изменения орбиты Земли", "движения тектонических плит")
-        ),
-        1 to listOf(
-            "Что используется для преобразования звуковых вибраций в электрические сигналы?" to listOf("микрофон", "антенна", "динамик"),
-            "Как называется процесс управления мощностью радиоволн в соответствии с вибрацией звука?" to listOf("манипулирование амплитудой", "электромагнитное торможение", "вибрационное кодирование"),
-            "В чём измеряется частота радиоволн?" to listOf("в килогерцах и мегагерцах", "в метрах и литрах", "в паскалях и ньютонах"),
-            "Почему приёмник может принимать только одну нужную станцию?" to listOf("потому что он настраивается на определённую частоту", "потому что звук изолируется микрофоном", "потому что приёмник имеет один динамик"),
-            "Для чего используются радиоволны, помимо передачи звука?" to listOf("для связи, телевидения и управления", "только для освещения", "только для обогрева воздуха")
-        ),
-        2 to listOf(
-            "Какой принцип используется в работе радара?" to listOf("отражение микроволн (эхо)", "испарение частиц", "гравитационное притяжение"),
-            "Кто изобрёл первую радарную установку?" to listOf("Роберт Ватсон-Ватт", "Альберт Эйнштейн", "Никола Тесла"),
-            "Для чего авиадиспетчеры используют радар?" to listOf("для определения положения и высоты самолёта", "для измерения температуры в салоне", "для подсчёта пассажиров"),
-            "Как радар определяет расстояние до объекта?" to listOf("по времени возвращения отражённых волн", "по весу объекта", "по цвету изображения на дисплее"),
-            "В каком году была создана первая радарная установка?" to listOf("в 1935 году", "в 1912 году", "в 1960 году")
-        )
-    )
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -75,6 +53,8 @@ class TestFragment : Fragment() {
         techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
         durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
 
+        Log.d("TestFragment", "onViewCreated: techniqueName='$techniqueName', currentTextIndex=$currentTextIndex, durationPerWord=$durationPerWord")
+
         displayQuestion(0)
 
         binding.btnSubmit.setOnClickListener {
@@ -83,17 +63,48 @@ class TestFragment : Fragment() {
     }
 
     private fun displayQuestion(index: Int) {
-        if (index < (questionsAndAnswers[currentTextIndex]?.size ?: 0)) {
-            val questionPair = questionsAndAnswers[currentTextIndex]?.get(index)
-            binding.questionText.text = questionPair?.first ?: ""
-            binding.questionText.tag = Pair(index, questionPair?.second?.get(0) ?: "") // Сохраняем индекс вопроса и правильный ответ
+        // Преобразуем techniqueName из имени класса в имя техники, если необходимо
+        val normalizedTechniqueName = when (techniqueName) {
+            "DiagonalReadingTechnique" -> "Чтение по диагонали"
+            "KeywordSearchTechnique" -> "Поиск ключевых слов"
+            "BlockReadingTechnique" -> "Чтение \"блоками\""
+            "SentenceReverseTechnique" -> "Предложения наоборот"
+            "WordReverseTechnique" -> "Слова наоборот"
+            "PointerMethodTechnique" -> "Метод \"указки\""
+            else -> techniqueName
+        }
+
+        Log.d("TestFragment", "displayQuestion: index=$index, normalizedTechniqueName='$normalizedTechniqueName'")
+
+        // Получаем вопросы для текущей техники и текста
+        val questions = when (normalizedTechniqueName) {
+            "Чтение по диагонали" -> TextResources.diagonalTexts.getOrNull(currentTextIndex)?.questionsAndAnswers
+            "Поиск ключевых слов" -> TextResources.keywordTexts.getOrNull(currentTextIndex)?.questionsAndAnswers
+            else -> TextResources.otherTexts[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers
+        }
+
+        Log.d("TestFragment", "Questions: size=${questions?.size ?: 0}, questions=$questions")
+
+        if (questions.isNullOrEmpty()) {
+            Log.e("TestFragment", "No questions found for technique='$normalizedTechniqueName', textIndex=$currentTextIndex")
+            binding.tvQuestionHeader.visibility = View.GONE
+            binding.questionText.text = "Ошибка: вопросы для этой техники недоступны."
+            binding.radioGroup.visibility = View.GONE
+            binding.btnSubmit.visibility = View.GONE
+            return
+        }
+
+        if (index < questions.size) {
+            val questionPair = questions[index]
+            binding.questionText.text = questionPair.first
+            binding.questionText.tag = Pair(index, questionPair.second[0]) // Сохраняем индекс вопроса и правильный ответ
 
             // Устанавливаем заголовок с номером вопроса
             binding.tvQuestionHeader.text = "Вопрос ${index + 1}"
 
             // Очищаем и заполняем RadioGroup с перемешанными вариантами
             binding.radioGroup.removeAllViews()
-            val options = questionPair?.second?.shuffled() ?: emptyList()
+            val options = questionPair.second.shuffled()
             options.forEach { option ->
                 val radioButton = RadioButton(context).apply {
                     text = option
@@ -103,6 +114,7 @@ class TestFragment : Fragment() {
                 }
                 binding.radioGroup.addView(radioButton)
             }
+            Log.d("TestFragment", "Displayed question $index: '${questionPair.first}', options=$options")
         } else {
             showResult()
         }
@@ -124,38 +136,64 @@ class TestFragment : Fragment() {
             score++
         }
 
+        Log.d("TestFragment", "Checked answer: userAnswer='$userAnswer', correctAnswer='$correctAnswer', score=$score")
+
         binding.radioGroup.clearCheck()
         displayQuestion(((binding.questionText.tag as? Pair<*, *>)?.first as? Int ?: 0) + 1)
     }
 
     private fun showResult() {
+        val normalizedTechniqueName = when (techniqueName) {
+            "DiagonalReadingTechnique" -> "Чтение по диагонали"
+            "KeywordSearchTechnique" -> "Поиск ключевых слов"
+            "BlockReadingTechnique" -> "Чтение \"блоками\""
+            "SentenceReverseTechnique" -> "Предложения наоборот"
+            "WordReverseTechnique" -> "Слова наоборот"
+            "PointerMethodTechnique" -> "Метод \"указки\""
+            else -> techniqueName
+        }
+
+        val totalQuestions = when (normalizedTechniqueName) {
+            "Чтение по диагонали" -> TextResources.diagonalTexts.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+            "Поиск ключевых слов" -> TextResources.keywordTexts.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+            else -> TextResources.otherTexts[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+        } ?: 0
+
+        Log.d("TestFragment", "showResult: score=$score, totalQuestions=$totalQuestions, techniqueName='$normalizedTechniqueName'")
+
         binding.tvQuestionHeader.visibility = View.GONE // Скрываем заголовок
-        binding.questionText.text = "Тест завершён! Ваш результат: $score из ${questionsAndAnswers[currentTextIndex]?.size ?: 0}"
+        binding.questionText.text = "Тест завершён! Ваш результат: $score из $totalQuestions"
         binding.radioGroup.visibility = View.GONE
         binding.btnSubmit.visibility = View.GONE
 
         // Сохраняем результат в SharedPreferences
-        saveTestResult()
+        saveTestResult(normalizedTechniqueName)
     }
 
-    private fun saveTestResult() {
+    private fun saveTestResult(normalizedTechniqueName: String) {
         val sharedPreferences = requireContext().getSharedPreferences("TestResults", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
 
         // Уникальный ключ для записи: методика + временная метка
         val timestamp = System.currentTimeMillis()
-        val key = "result_$techniqueName$timestamp"
+        val key = "result_$normalizedTechniqueName$timestamp"
+        val totalQuestions = when (normalizedTechniqueName) {
+            "Чтение по диагонали" -> TextResources.diagonalTexts.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+            "Поиск ключевых слов" -> TextResources.keywordTexts.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+            else -> TextResources.otherTexts[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+        } ?: 0
         val resultJson = """
             {
-                "techniqueName": "$techniqueName",
+                "techniqueName": "$normalizedTechniqueName",
                 "durationPerWord": $durationPerWord,
                 "score": $score,
-                "totalQuestions": ${questionsAndAnswers[currentTextIndex]?.size ?: 0},
+                "totalQuestions": $totalQuestions,
                 "timestamp": $timestamp
             }
         """
         editor.putString(key, resultJson)
         editor.apply()
+        Log.d("TestFragment", "Saved result: key=$key, resultJson=$resultJson")
     }
 
     override fun onDestroyView() {

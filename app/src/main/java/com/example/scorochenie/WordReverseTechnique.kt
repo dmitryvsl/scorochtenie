@@ -43,7 +43,7 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        val originalText = TextResources.sampleTexts[selectedTextIndex]
+        val originalText = TextResources.otherTexts["Слова наоборот"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
         fullText = reverseWords(originalText).replace("\n", " ")
         currentWordIndex = 0
         lastScrollY = 0

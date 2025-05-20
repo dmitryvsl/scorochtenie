@@ -11,6 +11,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import kotlin.random.Random
+
 class TechniqueDetailFragment : Fragment() {
 
     companion object {
@@ -56,7 +57,6 @@ class TechniqueDetailFragment : Fragment() {
                     onAnimationEnd()
                 }
             }
-
         }
 
         val titleTextView = view.findViewById<TextView>(R.id.technique_title)
@@ -120,9 +120,15 @@ class TechniqueDetailFragment : Fragment() {
 
                 // Устанавливаем значение durationPerWord по умолчанию (400 WPM)
                 val defaultDurationPerWord = 400L
-                val selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
+                // Выбираем размер списка текстов в зависимости от техники
+                val textListSize = when (technique) {
+                    is DiagonalReadingTechnique -> TextResources.diagonalTexts.size
+                    is KeywordSearchTechnique -> TextResources.keywordTexts.size
+                    else -> TextResources.otherTexts[technique.name]?.size ?: 1
+                }
+                val selectedTextIndex = Random.nextInt(textListSize)
 
-                Log.d("TechniqueDetail", "Starting animation with default durationPerWord=$defaultDurationPerWord WPM and textIndex=$selectedTextIndex")
+                Log.d("TechniqueDetail", "Starting animation with default durationPerWord=$defaultDurationPerWord WPM and textIndex=$selectedTextIndex, textListSize=$textListSize")
 
                 animationTextView?.let { textView ->
                     technique.startAnimation(textView, guideView, defaultDurationPerWord, selectedTextIndex) {
@@ -134,7 +140,6 @@ class TechniqueDetailFragment : Fragment() {
                         Log.d("TechniqueDetail", "Animation ended, guideView removed and set to INVISIBLE")
                     }
                 }
-
             }
         } else {
             animationTextView?.text = "Анимация для этой техники в разработке."

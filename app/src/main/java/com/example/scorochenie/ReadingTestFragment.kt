@@ -9,6 +9,7 @@ import android.widget.FrameLayout
 import androidx.fragment.app.Fragment
 import com.example.scorochenie.databinding.FragmentReadingTestBinding
 import kotlin.random.Random
+import android.widget.TextView
 
 class ReadingTestFragment : Fragment() {
 
@@ -45,9 +46,16 @@ class ReadingTestFragment : Fragment() {
 
         techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
         durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
-        selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
 
-        Log.d("ReadingTest", "Technique: $techniqueName, Duration: $durationPerWord, TextIndex: $selectedTextIndex")
+        // Выбираем размер списка текстов в зависимости от техники
+        val textListSize = when (techniqueName) {
+            "DiagonalReadingTechnique" -> TextResources.diagonalTexts.size
+            "KeywordSearchTechnique" -> TextResources.keywordTexts.size
+            else -> TextResources.otherTexts[technique.name]?.size ?: 1 // Для остальных техник
+        }
+        selectedTextIndex = Random.nextInt(textListSize)
+
+        Log.d("ReadingTest", "Technique: $techniqueName, Duration: $durationPerWord, TextIndex: $selectedTextIndex, TextListSize: $textListSize")
 
         technique = when (techniqueName) {
             "BlockReadingTechnique" -> BlockReadingTechnique()
@@ -58,7 +66,7 @@ class ReadingTestFragment : Fragment() {
             "WordReverseTechnique" -> WordReverseTechnique()
             else -> object : ReadingTechnique("Неизвестная техника") {
                 override fun startAnimation(
-                    textView: android.widget.TextView,
+                    textView: TextView,
                     guideView: View,
                     durationPerWord: Long,
                     selectedTextIndex: Int,
@@ -82,7 +90,7 @@ class ReadingTestFragment : Fragment() {
         }
     }
 
-    private fun startReadingAnimation(textView: android.widget.TextView) {
+    private fun startReadingAnimation(textView: TextView) {
         val guideView = View(requireContext()).apply {
             visibility = View.INVISIBLE
             layoutParams = FrameLayout.LayoutParams(20, 2)

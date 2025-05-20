@@ -44,7 +44,7 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        fullText = TextResources.sampleTexts[selectedTextIndex].replace("\n", " ")
+        fullText = TextResources.otherTexts["Метод указки"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
         currentWordIndex = 0
         lastScrollY = 0
 

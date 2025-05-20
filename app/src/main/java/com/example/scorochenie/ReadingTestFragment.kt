@@ -29,6 +29,7 @@ class ReadingTestFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var technique: ReadingTechnique
     private var durationPerWord: Long = 400L
+    private var techniqueName: String = ""
     private var selectedTextIndex: Int = 0
 
     override fun onCreateView(
@@ -42,7 +43,7 @@ class ReadingTestFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
+        techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
         durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
         selectedTextIndex = Random.nextInt(TextResources.sampleTexts.size)
 
@@ -98,11 +99,7 @@ class ReadingTestFragment : Fragment() {
     }
 
     private fun navigateToTest() {
-        val fragment = TestFragment.newInstance().apply {
-            arguments = Bundle().apply {
-                putInt("textIndex", selectedTextIndex)
-            }
-        }
+        val fragment = TestFragment.newInstance(selectedTextIndex, techniqueName, durationPerWord)
         parentFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .addToBackStack(null)

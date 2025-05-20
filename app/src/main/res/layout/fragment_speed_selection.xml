@@ -7,10 +7,19 @@
     android:background="?attr/android:colorBackground">
 
     <TextView
+        android:id="@+id/tv_technique_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="22sp"
+        android:textColor="?attr/colorOnBackground"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Выберите скорость чтения"
-        android:textSize="24sp"
+        android:textSize="18sp"
         android:textColor="?attr/colorOnBackground"
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="16dp" />

@@ -11,6 +11,7 @@ import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.animation.addListener
+import androidx.core.content.ContextCompat
 import kotlin.random.Random
 import android.graphics.Typeface
 
@@ -26,14 +27,14 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
 
     override val description: SpannableString
         get() {
-            val text = "Поиск ключевых слов — это техника скорочтения, при которой читатель фокусируется только на наиболее значимых словах и фразах, игнорируя остальной текст. Этот метод позволяет быстро выделить суть материала.\n" +
-                    "Для применения техники сканируйте текст, выделяя ключевые слова, такие как термины, имена или цифры.\n" +
-                    "Пропускайте связующие слова и второстепенные детали, чтобы сосредоточиться на основном содержании и ускорить чтение."
+            val text = "Поиск ключевых слов — это техника скорочтения, при которой внимание сосредотачивается на наиболее важных словах и фразах, несущих основную смысловую нагрузку.\n" +
+                    "Ключевые элементы текста уже выделены — фокусируйтесь именно на них, чтобы быстрее уловить суть.\n" +
+                    "Пропуская второстепенные детали, вы быстрее ориентируетесь в материале и эффективнее воспринимаете основное содержание."
             val spannable = SpannableString(text)
             spannable.setSpan(StyleSpan(Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("сканируйте текст"), text.indexOf("сканируйте текст") + "сканируйте текст".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("ключевые слова"), text.indexOf("ключевые слова") + "ключевые слова".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("основном содержании"), text.indexOf("основном содержании") + "основном содержании".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("основную смысловую нагрузку"), text.indexOf("основную смысловую нагрузку") + "основную смысловую нагрузку".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("именно на них"), text.indexOf("именно на них") + "именно на них".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("выделены"), text.indexOf("выделены") + "выделены".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             return spannable
         }
 
@@ -121,7 +122,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
             spannable.removeSpan(span)
         }
 
-        // Выделяем ключевые слова жирным шрифтом и красным цветом
+        // Выделяем ключевые слова жирным шрифтом и цветом из ресурсов
         val keyWords = TextResources.keyWords[selectedTextIndex]
         val foundKeyWords = mutableListOf<String>()
         keyWords.forEach { keyWord ->
@@ -135,7 +136,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
                 spannable.setSpan(
-                    android.text.style.ForegroundColorSpan(Color.RED),
+                    android.text.style.ForegroundColorSpan(ContextCompat.getColor(textView.context, R.color.keyword_color)),
                     startIndex,
                     endIndex,
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE

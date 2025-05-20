@@ -11,12 +11,13 @@ class SpeedSelectionFragment : Fragment() {
 
     companion object {
         private const val ARG_TECHNIQUE_NAME = "technique_name"
+
         fun newInstance(techniqueName: String): SpeedSelectionFragment {
-            val fragment = SpeedSelectionFragment()
-            val args = Bundle()
-            args.putString(ARG_TECHNIQUE_NAME, techniqueName)
-            fragment.arguments = args
-            return fragment
+            return SpeedSelectionFragment().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_TECHNIQUE_NAME, techniqueName)
+                }
+            }
         }
     }
 
@@ -28,24 +29,42 @@ class SpeedSelectionFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentSpeedSelectionBinding.inflate(inflater, container, false)
-        val view = binding.root
-
-        val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
-
-        binding.btnSlowSpeed.setOnClickListener {
-            navigateToReading(techniqueName, 200L)
-        }
-        binding.btnMediumSpeed.setOnClickListener {
-            navigateToReading(techniqueName, 400L)
-        }
-        binding.btnFastSpeed.setOnClickListener {
-            navigateToReading(techniqueName, 600L)
-        }
-
-        return view
+        return binding.root
     }
 
-    private fun navigateToReading(techniqueName: String, durationPerWord: Long) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // Получаем techniqueName из аргументов
+        val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
+
+        // Переводим techniqueName в читаемое название
+        val techniqueDisplayName = when (techniqueName) {
+            "BlockReadingTechnique" -> "Чтение \"блоками\""
+            "DiagonalReadingTechnique" -> "Чтение по диагонали"
+            "KeywordSearchTechnique" -> "Поиск ключевых слов"
+            "PointerMethodTechnique" -> "Метод \"указки\""
+            "SentenceReverseTechnique" -> "Предложения наоборот"
+            "WordReverseTechnique" -> "Слова наоборот"
+            else -> techniqueName
+        }
+
+        // Устанавливаем заголовок с названием техники
+        binding.tvTechniqueTitle.text = techniqueDisplayName
+
+        // Обработчики кнопок скорости
+        binding.btnSlowSpeed.setOnClickListener {
+            navigateToReadingTest(techniqueName, 200L)
+        }
+        binding.btnMediumSpeed.setOnClickListener {
+            navigateToReadingTest(techniqueName, 400L)
+        }
+        binding.btnFastSpeed.setOnClickListener {
+            navigateToReadingTest(techniqueName, 600L)
+        }
+    }
+
+    private fun navigateToReadingTest(techniqueName: String, durationPerWord: Long) {
         val fragment = ReadingTestFragment.newInstance(techniqueName, durationPerWord)
         parentFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)

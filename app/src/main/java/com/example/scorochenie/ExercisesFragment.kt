@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -18,7 +19,12 @@ class ExercisesFragment : Fragment() {
         // Настройка RecyclerView
         val recyclerView = view.findViewById<RecyclerView>(R.id.exercises_list)
         recyclerView.layoutManager = LinearLayoutManager(context)
-
+        // Добавляем разделитель
+        val dividerItemDecoration = DividerItemDecoration(
+            recyclerView.context,
+            LinearLayoutManager.VERTICAL
+        )
+        recyclerView.addItemDecoration(dividerItemDecoration)
         // Список техник
         val techniques = listOf(
             TechniqueItem("DiagonalReadingTechnique", "Чтение по диагонали"),

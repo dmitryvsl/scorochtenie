@@ -7,38 +7,20 @@
     android:padding="16dp"
     android:background="?attr/android:colorBackground">
 
-<TextView
-android:layout_width="wrap_content"
-android:layout_height="wrap_content"
-android:text="Ваш рейтинг"
-android:textSize="24sp"
-android:textColor="?attr/colorOnBackground"
-android:layout_gravity="center_horizontal"
-android:layout_marginBottom="16dp" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ваш рейтинг"
+        android:textSize="24sp"
+        android:textColor="?attr/colorOnBackground"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp" />
 
-<!--<com.google.android.material.progressindicator.LinearProgressIndicator-->
-<!--android:layout_width="match_parent"-->
-<!--android:layout_height="wrap_content"-->
-<!--android:progress="75"-->
-<!--app:indicatorColor="?attr/colorSecondary"-->
-<!--app:trackColor="?attr/colorPrimaryVariant"-->
-<!--android:layout_marginBottom="16dp" />-->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/ratingRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
-<TextView
-android:layout_width="wrap_content"
-android:layout_height="wrap_content"
-android:text="Скорость чтения: 300 слов/мин"
-android:textSize="18sp"
-android:textColor="?attr/colorOnBackground"
-android:layout_gravity="center_horizontal"
-android:layout_marginBottom="8dp" />
-
-<TextView
-android:layout_width="wrap_content"
-android:layout_height="wrap_content"
-android:text="Прочитано книг: 5"
-android:textSize="18sp"
-android:textColor="?attr/colorOnBackground"
-android:layout_gravity="center_horizontal" />
-
-    </LinearLayout>
+</LinearLayout>

@@ -11,6 +11,7 @@
     <color name="on_secondary">#FFFFFF</color>
     <color name="on_background">#1F2937</color>
     <color name="on_surface">#1F2937</color>
+    <color name="keyword_color">#4CAF50</color>
     <!-- Дополнительные цвета -->
     <color name="error">#EF4444</color>
     <color name="on_error">#FFFFFF</color>

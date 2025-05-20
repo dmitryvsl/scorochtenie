@@ -26,13 +26,13 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
 
     override val description: SpannableString
         get() {
-            val text = "Метод \"указки\" — это техника скорочтения, при которой используется палец, ручка или другой указатель для направления взгляда по тексту. Метод помогает поддерживать ритм чтения и избегать возвращений назад.\n" +
-                    "Для применения техники ведите указку плавно вдоль строк, следуя за текстом.\n" +
-                    "Контролируйте скорость движения указки, чтобы сосредоточиться на ключевых словах и ускорить восприятие информации."
+            val text = "Метод \"указки\" — это техника скорочтения, в которой используется визуальное сопровождение текста для направления внимания. Вместо пальца или ручки, в приложении слова подсвечиваются по очереди, помогая глазам двигаться по строкам без остановок и возвратов.\n" +
+                    "Такая подача помогает удерживать ритм чтения и повышает концентрацию на ключевых фразах.\n" +
+                    "Следите за подсвеченными словами и старайтесь воспринимать информацию с их скоростью — это способствует более быстрому и осознанному чтению."
             val spannable = SpannableString(text)
             spannable.setSpan(StyleSpan(Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("ведите указку плавно"), text.indexOf("ведите указку плавно") + "ведите указку плавно".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("ключевых словах"), text.indexOf("ключевых словах") + "ключевых словах".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("визуальное сопровождение текста"), text.indexOf("визуальное сопровождение текста") + "визуальное сопровождение текста".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("за подсвеченными словами"), text.indexOf("за подсвеченными словами") + "за подсвеченными словами".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             return spannable
         }
 

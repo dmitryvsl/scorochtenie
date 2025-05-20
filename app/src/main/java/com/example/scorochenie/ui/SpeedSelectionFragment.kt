@@ -1,10 +1,11 @@
-package com.example.scorochenie
+package com.example.scorochenie.ui
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import com.example.scorochenie.R
 import com.example.scorochenie.databinding.FragmentSpeedSelectionBinding
 
 class SpeedSelectionFragment : Fragment() {

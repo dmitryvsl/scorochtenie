@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.ui
 
 import android.content.Context
 import android.graphics.Canvas
@@ -8,8 +8,9 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import android.widget.TextView
+import com.example.scorochenie.R
 
-class DiagonalLineView @JvmOverloads constructor(
+public class DiagonalLineView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0

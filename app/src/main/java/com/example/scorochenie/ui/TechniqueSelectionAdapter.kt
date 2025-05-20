@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.ui
 
 import android.view.LayoutInflater
 import android.view.View

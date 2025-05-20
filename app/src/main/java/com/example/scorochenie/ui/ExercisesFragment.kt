@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.ui
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,6 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.scorochenie.R
 
 class ExercisesFragment : Fragment() {
     override fun onCreateView(

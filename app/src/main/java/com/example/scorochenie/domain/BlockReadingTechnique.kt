@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.domain
 
 import android.animation.ValueAnimator
 import android.graphics.Color

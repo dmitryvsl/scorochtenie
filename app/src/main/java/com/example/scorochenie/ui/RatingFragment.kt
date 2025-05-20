@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.ui
 
 import android.content.Context
 import android.os.Bundle
@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.scorochenie.data.TestResult
 import com.example.scorochenie.databinding.FragmentRatingBinding
 import org.json.JSONObject
 

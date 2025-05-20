@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.domain
 
 import android.text.SpannableString
 import android.view.View

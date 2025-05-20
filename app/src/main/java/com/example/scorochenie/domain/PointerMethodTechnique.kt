@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.domain
 
 import android.animation.ValueAnimator
 import android.graphics.Color
@@ -11,10 +11,9 @@ import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.animation.addListener
-import androidx.core.content.ContextCompat
 import android.graphics.Typeface
 
-class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых слов") {
+class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""
@@ -26,14 +25,13 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
 
     override val description: SpannableString
         get() {
-            val text = "Поиск ключевых слов — это техника скорочтения, при которой внимание сосредотачивается на наиболее важных словах и фразах, несущих основную смысловую нагрузку.\n" +
-                    "Ключевые элементы текста уже выделены — фокусируйтесь именно на них, чтобы быстрее уловить суть.\n" +
-                    "Пропуская второстепенные детали, вы быстрее ориентируетесь в материале и эффективнее воспринимаете основное содержание."
+            val text = "Метод \"указки\" — это техника скорочтения, в которой используется визуальное сопровождение текста для направления внимания. Вместо пальца или ручки, в приложении слова подсвечиваются по очереди, помогая глазам двигаться по строкам без остановок и возвратов.\n" +
+                    "Такая подача помогает удерживать ритм чтения и повышает концентрацию на ключевых фразах.\n" +
+                    "Следите за подсвеченными словами и старайтесь воспринимать информацию с их скоростью — это способствует более быстрому и осознанному чтению."
             val spannable = SpannableString(text)
             spannable.setSpan(StyleSpan(Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("основную смысловую нагрузку"), text.indexOf("основную смысловую нагрузку") + "основную смысловую нагрузку".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("именно на них"), text.indexOf("именно на них") + "именно на них".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("выделены"), text.indexOf("выделены") + "выделены".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("визуальное сопровождение текста"), text.indexOf("визуальное сопровождение текста") + "визуальное сопровождение текста".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("за подсвеченными словами"), text.indexOf("за подсвеченными словами") + "за подсвеченными словами".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             return spannable
         }
 
@@ -45,20 +43,20 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        fullText = TextResources.keywordTexts.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
+        fullText = TextResources.otherTexts["Метод указки"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
         currentWordIndex = 0
         lastScrollY = 0
 
         // Преобразуем WPM в миллисекунды на слово
-        val wordDurationMs = (60_000 / durationPerWord).coerceAtLeast(50L)
-        Log.d("KeywordSearch", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms, selectedTextIndex=$selectedTextIndex, textLength=${fullText.length}")
+        val wordDurationMs = (60_000 / durationPerWord).coerceAtLeast(50L) // Минимум 50 мс
+        Log.d("PointerMethod", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms")
 
         scrollView = textView.parent as? ScrollView
-        Log.d("KeywordSearch", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
+        Log.d("PointerMethod", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
         if (scrollView == null) {
-            Log.e("KeywordSearch", "TextView is not inside a ScrollView, scrolling will not work")
+            Log.e("PointerMethod", "TextView is not inside a ScrollView, scrolling will not work")
         } else {
-            Log.d("KeywordSearch", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
+            Log.d("PointerMethod", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
         }
 
         textView.gravity = android.view.Gravity.TOP
@@ -79,7 +77,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
         currentPartWords = currentPartText.split("\\s+".toRegex()).filter { it.isNotEmpty() }
         currentWordIndex = 0
 
-        Log.d("KeywordSearch", "Showing full text: '${currentPartText.take(50)}...', wordCount=${currentPartWords.size}")
+        Log.d("PointerMethod", "Showing full text: '$currentPartText', wordCount=${currentPartWords.size}")
 
         textView.text = currentPartText
         animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
@@ -93,7 +91,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
     ) {
         if (currentWordIndex >= currentPartWords.size) {
             guideView.visibility = View.INVISIBLE
-            Log.d("KeywordSearch", "Text ended, stopping animation")
+            Log.d("PointerMethod", "Text ended, stopping animation")
             animator?.cancel()
             textView.text = currentPartText
             onAnimationEnd()
@@ -106,49 +104,14 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
 
     private fun highlightWord(textView: TextView) {
         val spannable = SpannableString(currentPartText)
-
-        // Удаляем все существующие BackgroundColorSpan, StyleSpan и ForegroundColorSpan
-        val existingBackgroundSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
-        for (span in existingBackgroundSpans) {
-            spannable.removeSpan(span)
-        }
-        val existingStyleSpans = spannable.getSpans(0, spannable.length, StyleSpan::class.java)
-        for (span in existingStyleSpans) {
-            spannable.removeSpan(span)
-        }
-        val existingForegroundSpans = spannable.getSpans(0, spannable.length, android.text.style.ForegroundColorSpan::class.java)
-        for (span in existingForegroundSpans) {
+        val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+        for (span in existingSpans) {
             spannable.removeSpan(span)
         }
 
-        // Выделяем ключевые слова жирным шрифтом и цветом из ресурсов
-        val keyWords = TextResources.keywordTexts.getOrNull(selectedTextIndex)?.keyWords ?: emptyList()
-        val foundKeyWords = mutableListOf<String>()
-        keyWords.forEach { keyWord ->
-            var startIndex = currentPartText.indexOf(keyWord, ignoreCase = false)
-            while (startIndex != -1) {
-                val endIndex = startIndex + keyWord.length
-                spannable.setSpan(
-                    StyleSpan(Typeface.BOLD),
-                    startIndex,
-                    endIndex,
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                spannable.setSpan(
-                    android.text.style.ForegroundColorSpan(ContextCompat.getColor(textView.context, R.color.keyword_color)),
-                    startIndex,
-                    endIndex,
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                foundKeyWords.add(keyWord)
-                startIndex = currentPartText.indexOf(keyWord, startIndex + 1, ignoreCase = false)
-            }
-        }
-        Log.d("KeywordSearch", "Found keywords in text: ${foundKeyWords.joinToString(", ")}, total=${foundKeyWords.size}")
-
-        // Подсвечиваем текущее слово жёлтым фоном
         var startIndex = 0
         var wordCount = 0
+
         currentPartWords.forEach { word ->
             if (wordCount == currentWordIndex) {
                 val endIndex = startIndex + word.length
@@ -158,7 +121,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
                     endIndex,
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
-                Log.d("KeywordSearch", "Highlighting word: '$word', start=$startIndex, end=$endIndex")
+                Log.d("PointerMethod", "Highlighting word: '$word', start=$startIndex, end=$endIndex")
             }
             startIndex += word.length
             if (startIndex < currentPartText.length && currentPartText[startIndex] == ' ') {
@@ -181,7 +144,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
 
         val layout = textView.layout
         if (layout == null) {
-            Log.e("KeywordSearch", "TextView layout is null")
+            Log.e("PointerMethod", "TextView layout is null")
             textView.postDelayed({ animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd) }, 200)
             return
         }
@@ -190,7 +153,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
         val wordEndIndex = wordStartIndex + currentPartWords[currentWordIndex].length
 
         if (wordStartIndex < 0 || wordStartIndex >= currentPartText.length) {
-            Log.e("KeywordSearch", "Invalid wordStartIndex: $wordStartIndex")
+            Log.e("PointerMethod", "Invalid wordStartIndex: $wordStartIndex")
             currentWordIndex++
             animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
             return
@@ -224,8 +187,8 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
                     // Цель: поставить строку в верхнюю треть экрана
                     val targetScrollY = (lineTopPosition - scrollViewHeight / 3).coerceAtLeast(0).toInt()
                     if (targetScrollY != lastScrollY) {
-                        Log.d("KeywordSearch", "Attempting scroll for line $startLine, word='${currentPartWords[currentWordIndex]}'")
-                        Log.d("KeywordSearch", "Scroll parameters: line=$startLine, word='${currentPartWords[currentWordIndex]}', lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
+                        Log.d("PointerMethod", "Attempting scroll for line $startLine, word='${currentPartWords[currentWordIndex]}'")
+                        Log.d("PointerMethod", "Scroll parameters: line=$startLine, word='${currentPartWords[currentWordIndex]}', lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
                         // Плавная прокрутка
                         ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
                             duration = wordDurationMs / 2 // Прокрутка быстрее анимации слова
@@ -236,25 +199,25 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
                             addListener(
                                 onEnd = {
                                     lastScrollY = targetScrollY
-                                    Log.d("KeywordSearch", "Scrolled to line $startLine, targetScrollY=$targetScrollY, currentScrollY=${sv.scrollY}")
+                                    Log.d("PointerMethod", "Scrolled to line $startLine, targetScrollY=$targetScrollY, currentScrollY=${sv.scrollY}")
                                 }
                             )
                             start()
                         }
                     } else {
-                        Log.d("KeywordSearch", "No scroll needed, already at target: line=$startLine, word='${currentPartWords[currentWordIndex]}', targetScrollY=$targetScrollY")
+                        Log.d("PointerMethod", "No scroll needed, already at target: line=$startLine, word='${currentPartWords[currentWordIndex]}', targetScrollY=$targetScrollY")
                     }
                 } else {
-                    Log.d("KeywordSearch", "No scroll needed, line $startLine is visible, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, visibleTop=$visibleTop, visibleBottom=$visibleBottom")
+                    Log.d("PointerMethod", "No scroll needed, line $startLine is visible, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, visibleTop=$visibleTop, visibleBottom=$visibleBottom")
                 }
 
                 sv.postDelayed({
-                    Log.d("KeywordSearch", "After scroll check, currentScrollY=${sv.scrollY}, textViewHeight=${textView.height}, scrollViewHeight=$scrollViewHeight")
+                    Log.d("PointerMethod", "After scroll check, currentScrollY=${sv.scrollY}, textViewHeight=${textView.height}, scrollViewHeight=$scrollViewHeight")
                 }, 100)
             }
-        } ?: Log.e("KeywordSearch", "ScrollView is null, cannot scroll to line $startLine for word '${currentPartWords[currentWordIndex]}'")
+        } ?: Log.e("PointerMethod", "ScrollView is null, cannot scroll to line $startLine for word '${currentPartWords[currentWordIndex]}'")
 
-        Log.d("KeywordSearch", "Animating word: '${currentPartWords[currentWordIndex]}' at position $currentWordIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine, duration=$wordDurationMs ms")
+        Log.d("PointerMethod", "Animating word: '${currentPartWords[currentWordIndex]}' at position $currentWordIndex, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine, duration=$wordDurationMs ms")
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = wordDurationMs
@@ -267,7 +230,7 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
             addListener(
                 onEnd = {
                     currentWordIndex++
-                    Log.d("KeywordSearch", "Word animation ended, currentWordIndex=$currentWordIndex")
+                    Log.d("PointerMethod", "Word animation ended, currentWordIndex=$currentWordIndex")
                     animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
                 }
             )
@@ -292,6 +255,6 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
     }
     override fun cancelAnimation() {
         animator?.cancel()
-        Log.d("KeywordSearch", "Animation cancelled")
+        Log.d("PointerMethod", "Animation cancelled")
     }
 }

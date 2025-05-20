@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.data
 
 data class TestResult(
     val techniqueName: String,

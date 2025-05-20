@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.domain
 
 // Базовый класс для текстов, только текст и вопросы
 data class TextData(

@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.ui
 
 import android.os.Bundle
 import android.util.Log
@@ -10,6 +10,15 @@ import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import com.example.scorochenie.domain.BlockReadingTechnique
+import com.example.scorochenie.domain.DiagonalReadingTechnique
+import com.example.scorochenie.domain.KeywordSearchTechnique
+import com.example.scorochenie.domain.PointerMethodTechnique
+import com.example.scorochenie.R
+import com.example.scorochenie.domain.ReadingTechnique
+import com.example.scorochenie.domain.SentenceReverseTechnique
+import com.example.scorochenie.domain.TextResources
+import com.example.scorochenie.domain.WordReverseTechnique
 import kotlin.random.Random
 
 class TechniqueDetailFragment : Fragment() {

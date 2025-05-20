@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.domain
 
 import android.animation.ValueAnimator
 import android.graphics.Color
@@ -11,6 +11,8 @@ import android.view.View
 import android.view.animation.LinearInterpolator
 import android.widget.TextView
 import androidx.core.animation.addListener
+import com.example.scorochenie.ui.DiagonalLineView
+import com.example.scorochenie.R
 import kotlin.math.abs
 
 class DiagonalReadingTechnique : ReadingTechnique("Чтение по диагонали") {

@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.domain
 
 import android.animation.ValueAnimator
 import android.graphics.Color
@@ -11,7 +11,6 @@ import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.animation.addListener
-import kotlin.random.Random
 
 class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
     private var currentWordIndex = 0

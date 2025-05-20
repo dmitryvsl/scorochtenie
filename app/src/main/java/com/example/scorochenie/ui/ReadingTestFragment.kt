@@ -1,4 +1,4 @@
-package com.example.scorochenie
+package com.example.scorochenie.ui
 
 import android.os.Bundle
 import android.util.Log
@@ -10,6 +10,15 @@ import androidx.fragment.app.Fragment
 import com.example.scorochenie.databinding.FragmentReadingTestBinding
 import kotlin.random.Random
 import android.widget.TextView
+import com.example.scorochenie.domain.BlockReadingTechnique
+import com.example.scorochenie.domain.DiagonalReadingTechnique
+import com.example.scorochenie.domain.KeywordSearchTechnique
+import com.example.scorochenie.domain.PointerMethodTechnique
+import com.example.scorochenie.R
+import com.example.scorochenie.domain.ReadingTechnique
+import com.example.scorochenie.domain.SentenceReverseTechnique
+import com.example.scorochenie.domain.TextResources
+import com.example.scorochenie.domain.WordReverseTechnique
 
 class ReadingTestFragment : Fragment() {
 
@@ -89,8 +98,6 @@ class ReadingTestFragment : Fragment() {
         }
         selectedTextIndex = Random.nextInt(textListSize)
 
-        Log.d("ReadingTestFragment", "Technique: $techniqueName, Normalized: $normalizedTechniqueName, Duration: $durationPerWord, TextIndex: $selectedTextIndex, TextListSize: $textListSize")
-
         if (normalizedTechniqueName == "Чтение по диагонали") {
             binding.scrollContainer.visibility = View.GONE
             binding.diagonalContainer.visibility = View.VISIBLE
@@ -103,7 +110,6 @@ class ReadingTestFragment : Fragment() {
     }
 
     private fun startReadingAnimation(textView: TextView) {
-        Log.d("ReadingTestFragment", "Starting animation, isAdded=$isAdded, isDetached=$isDetached")
         val guideView = View(requireContext()).apply {
             visibility = View.INVISIBLE
             layoutParams = FrameLayout.LayoutParams(20, 2)
@@ -114,29 +120,23 @@ class ReadingTestFragment : Fragment() {
         container.addView(guideView)
 
         technique.startAnimation(textView, guideView, durationPerWord, selectedTextIndex) {
-            Log.d("ReadingTestFragment", "onAnimationEnd called, isAdded=$isAdded, isDetached=$isDetached")
             container.removeView(guideView)
             navigateToTest()
         }
     }
 
     private fun navigateToTest() {
-        if (isAdded && !isDetached && parentFragmentManager != null) {
-            Log.d("ReadingTestFragment", "Navigating to TestFragment, selectedTextIndex=$selectedTextIndex, techniqueName=$techniqueName")
-            val fragment = TestFragment.newInstance(selectedTextIndex, techniqueName, durationPerWord)
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .addToBackStack(null)
-                .commit()
-        } else {
-            Log.w("ReadingTestFragment", "Cannot navigate: Fragment is not attached or parentFragmentManager is null")
-        }
+        val fragment = TestFragment.newInstance(selectedTextIndex, techniqueName, durationPerWord)
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
+
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        technique.cancelAnimation() // Останавливаем анимацию
+        technique.cancelAnimation()
         _binding = null
-        Log.d("ReadingTestFragment", "onDestroyView called, animation cancelled")
     }
 }

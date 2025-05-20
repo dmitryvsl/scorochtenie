@@ -3,6 +3,9 @@ package com.example.scorochenie
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import com.example.scorochenie.ui.ExercisesFragment
+import com.example.scorochenie.ui.MaterialsFragment
+import com.example.scorochenie.ui.RatingFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {

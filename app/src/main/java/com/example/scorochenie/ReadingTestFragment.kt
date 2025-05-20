@@ -47,16 +47,7 @@ class ReadingTestFragment : Fragment() {
         techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
         durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
 
-        // Выбираем размер списка текстов в зависимости от техники
-        val textListSize = when (techniqueName) {
-            "DiagonalReadingTechnique" -> TextResources.diagonalTexts.size
-            "KeywordSearchTechnique" -> TextResources.keywordTexts.size
-            else -> TextResources.otherTexts[technique.name]?.size ?: 1 // Для остальных техник
-        }
-        selectedTextIndex = Random.nextInt(textListSize)
-
-        Log.d("ReadingTest", "Technique: $techniqueName, Duration: $durationPerWord, TextIndex: $selectedTextIndex, TextListSize: $textListSize")
-
+        // Инициализация техники
         technique = when (techniqueName) {
             "BlockReadingTechnique" -> BlockReadingTechnique()
             "DiagonalReadingTechnique" -> DiagonalReadingTechnique()
@@ -78,6 +69,37 @@ class ReadingTestFragment : Fragment() {
                 }
             }
         }
+
+        // Определяем доступные тексты с валидными вопросами
+        val validTextIndices = when (techniqueName) {
+            "DiagonalReadingTechnique" -> TextResources.diagonalTexts.indices.toList()
+            "KeywordSearchTechnique" -> TextResources.keywordTexts.indices.toList()
+            else -> {
+                val texts = TextResources.otherTexts[technique.name] ?: emptyList()
+                texts.indices.filter { index ->
+                    val questions = texts[index].questionsAndAnswers
+                    questions.isNotEmpty() && questions.all { (question, _) ->
+                        question.isNotBlank() && !question.startsWith("Вопрос ")
+                    }
+                }
+            }
+        }
+
+        // Если нет валидных текстов, используем индекс 0 как запасной вариант
+        selectedTextIndex = if (validTextIndices.isNotEmpty()) {
+            validTextIndices[Random.nextInt(validTextIndices.size)]
+        } else {
+            Log.w("ReadingTest", "No valid texts with questions for $techniqueName, falling back to index 0")
+            0
+        }
+
+        val textListSize = when (techniqueName) {
+            "DiagonalReadingTechnique" -> TextResources.diagonalTexts.size
+            "KeywordSearchTechnique" -> TextResources.keywordTexts.size
+            else -> TextResources.otherTexts[technique.name]?.size ?: 1
+        }
+
+        Log.d("ReadingTest", "Technique: $techniqueName, Duration: $durationPerWord, TextIndex: $selectedTextIndex, TextListSize: $textListSize, ValidIndices: $validTextIndices")
 
         if (techniqueName == "DiagonalReadingTechnique") {
             binding.scrollContainer.visibility = View.GONE

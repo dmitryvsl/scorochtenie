@@ -44,7 +44,7 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
     ) {
         try {
             this.selectedTextIndex = selectedTextIndex
-            fullText = TextResources.otherTexts["Чтение \"блоками\""]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
+            fullText = TextResources.otherTexts["Чтение блоками"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
             if (fullText.isEmpty()) {
                 Log.e("BlockReading", "No text available for selectedTextIndex=$selectedTextIndex")
                 textView.text = "Текст недоступен"

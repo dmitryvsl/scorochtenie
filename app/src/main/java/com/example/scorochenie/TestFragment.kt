@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.example.scorochenie.databinding.FragmentTestBinding
+import org.json.JSONObject
 
 class TestFragment : Fragment() {
 
@@ -48,7 +49,6 @@ class TestFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Получаем аргументы
         currentTextIndex = arguments?.getInt(ARG_TEXT_INDEX, 0) ?: 0
         techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
         durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
@@ -63,24 +63,26 @@ class TestFragment : Fragment() {
     }
 
     private fun displayQuestion(index: Int) {
-        // Преобразуем techniqueName из имени класса в имя техники, если необходимо
         val normalizedTechniqueName = when (techniqueName) {
             "DiagonalReadingTechnique" -> "Чтение по диагонали"
             "KeywordSearchTechnique" -> "Поиск ключевых слов"
-            "BlockReadingTechnique" -> "Чтение \"блоками\""
+            "BlockReadingTechnique" -> "Чтение блоками"
             "SentenceReverseTechnique" -> "Предложения наоборот"
             "WordReverseTechnique" -> "Слова наоборот"
-            "PointerMethodTechnique" -> "Метод \"указки\""
+            "PointerMethodTechnique" -> "Метод указки"
             else -> techniqueName
         }
 
         Log.d("TestFragment", "displayQuestion: index=$index, normalizedTechniqueName='$normalizedTechniqueName'")
 
-        // Получаем вопросы для текущей техники и текста
         val questions = when (normalizedTechniqueName) {
             "Чтение по диагонали" -> TextResources.diagonalTexts.getOrNull(currentTextIndex)?.questionsAndAnswers
             "Поиск ключевых слов" -> TextResources.keywordTexts.getOrNull(currentTextIndex)?.questionsAndAnswers
-            else -> TextResources.otherTexts[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers
+            else -> {
+                Log.d("TestFragment", "Attempting to access otherTexts with key: '$normalizedTechniqueName'")
+                Log.d("TestFragment", "Available keys in otherTexts: ${TextResources.otherTexts.keys}")
+                TextResources.otherTexts[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers
+            }
         }
 
         Log.d("TestFragment", "Questions: size=${questions?.size ?: 0}, questions=$questions")
@@ -97,20 +99,18 @@ class TestFragment : Fragment() {
         if (index < questions.size) {
             val questionPair = questions[index]
             binding.questionText.text = questionPair.first
-            binding.questionText.tag = Pair(index, questionPair.second[0]) // Сохраняем индекс вопроса и правильный ответ
+            binding.questionText.tag = Pair(index, questionPair.second[0])
 
-            // Устанавливаем заголовок с номером вопроса
             binding.tvQuestionHeader.text = "Вопрос ${index + 1}"
 
-            // Очищаем и заполняем RadioGroup с перемешанными вариантами
             binding.radioGroup.removeAllViews()
             val options = questionPair.second.shuffled()
             options.forEach { option ->
                 val radioButton = RadioButton(context).apply {
                     text = option
                     id = View.generateViewId()
-                    textSize = 16f // Устанавливаем размер текста 16sp
-                    setTextColor(ContextCompat.getColor(context, android.R.color.white)) // Цвет текста
+                    textSize = 16f
+                    setTextColor(ContextCompat.getColor(context, android.R.color.white))
                 }
                 binding.radioGroup.addView(radioButton)
             }
@@ -123,12 +123,10 @@ class TestFragment : Fragment() {
     private fun checkAnswer() {
         val selectedRadioButtonId = binding.radioGroup.checkedRadioButtonId
         if (selectedRadioButtonId == -1) {
-            // Показываем Toast, если ответ не выбран
             Toast.makeText(context, "Выберите ответ", Toast.LENGTH_SHORT).show()
-            return // Прерываем выполнение, не переходя к следующему вопросу
+            return
         }
 
-        // Обработка выбранного ответа
         val selectedRadioButton = binding.radioGroup.findViewById<RadioButton>(selectedRadioButtonId)
         val userAnswer = selectedRadioButton.text.toString().lowercase()
         val correctAnswer = (binding.questionText.tag as? Pair<*, *>)?.second as? String ?: ""
@@ -146,10 +144,10 @@ class TestFragment : Fragment() {
         val normalizedTechniqueName = when (techniqueName) {
             "DiagonalReadingTechnique" -> "Чтение по диагонали"
             "KeywordSearchTechnique" -> "Поиск ключевых слов"
-            "BlockReadingTechnique" -> "Чтение \"блоками\""
+            "BlockReadingTechnique" -> "Чтение блоками"
             "SentenceReverseTechnique" -> "Предложения наоборот"
             "WordReverseTechnique" -> "Слова наоборот"
-            "PointerMethodTechnique" -> "Метод \"указки\""
+            "PointerMethodTechnique" -> "Метод указки"
             else -> techniqueName
         }
 
@@ -161,39 +159,55 @@ class TestFragment : Fragment() {
 
         Log.d("TestFragment", "showResult: score=$score, totalQuestions=$totalQuestions, techniqueName='$normalizedTechniqueName'")
 
-        binding.tvQuestionHeader.visibility = View.GONE // Скрываем заголовок
+        binding.tvQuestionHeader.visibility = View.GONE
         binding.questionText.text = "Тест завершён! Ваш результат: $score из $totalQuestions"
         binding.radioGroup.visibility = View.GONE
         binding.btnSubmit.visibility = View.GONE
 
-        // Сохраняем результат в SharedPreferences
-        saveTestResult(normalizedTechniqueName)
+        saveTestResult(normalizedTechniqueName, totalQuestions)
     }
 
-    private fun saveTestResult(normalizedTechniqueName: String) {
+    private fun saveTestResult(normalizedTechniqueName: String, totalQuestions: Int) {
         val sharedPreferences = requireContext().getSharedPreferences("TestResults", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
+        val key = "result_$normalizedTechniqueName" // Единый ключ для техники
 
-        // Уникальный ключ для записи: методика + временная метка
-        val timestamp = System.currentTimeMillis()
-        val key = "result_$normalizedTechniqueName$timestamp"
-        val totalQuestions = when (normalizedTechniqueName) {
-            "Чтение по диагонали" -> TextResources.diagonalTexts.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
-            "Поиск ключевых слов" -> TextResources.keywordTexts.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
-            else -> TextResources.otherTexts[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
-        } ?: 0
-        val resultJson = """
-            {
-                "techniqueName": "$normalizedTechniqueName",
-                "durationPerWord": $durationPerWord,
-                "score": $score,
-                "totalQuestions": $totalQuestions,
-                "timestamp": $timestamp
+        // Получаем существующий результат, если он есть
+        val existingResultJson = sharedPreferences.getString(key, null)
+        var shouldSave = true
+
+        if (existingResultJson != null) {
+            try {
+                val existingResult = JSONObject(existingResultJson)
+                val existingScore = existingResult.getInt("score")
+                val existingDuration = existingResult.getLong("durationPerWord")
+
+                // Сохраняем, если новый score выше, или если score равен, но durationPerWord меньше
+                if (score < existingScore || (score == existingScore && durationPerWord >= existingDuration)) {
+                    shouldSave = false
+                }
+            } catch (e: Exception) {
+                Log.e("TestFragment", "Failed to parse existing result JSON: $existingResultJson", e)
             }
-        """
-        editor.putString(key, resultJson)
-        editor.apply()
-        Log.d("TestFragment", "Saved result: key=$key, resultJson=$resultJson")
+        }
+
+        if (shouldSave) {
+            val timestamp = System.currentTimeMillis()
+            val resultJson = """
+                {
+                    "techniqueName": "$normalizedTechniqueName",
+                    "durationPerWord": $durationPerWord,
+                    "score": $score,
+                    "totalQuestions": $totalQuestions,
+                    "timestamp": $timestamp
+                }
+            """
+            editor.putString(key, resultJson)
+            editor.apply()
+            Log.d("TestFragment", "Saved result: key=$key, resultJson=$resultJson")
+        } else {
+            Log.d("TestFragment", "Skipped saving: new result (score=$score, duration=$durationPerWord) not better than existing")
+        }
     }
 
     override fun onDestroyView() {

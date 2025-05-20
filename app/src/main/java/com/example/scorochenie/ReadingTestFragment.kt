@@ -89,7 +89,7 @@ class ReadingTestFragment : Fragment() {
         }
         selectedTextIndex = Random.nextInt(textListSize)
 
-        Log.d("ReadingTest", "Technique: $techniqueName, Normalized: $normalizedTechniqueName, Duration: $durationPerWord, TextIndex: $selectedTextIndex, TextListSize: $textListSize")
+        Log.d("ReadingTestFragment", "Technique: $techniqueName, Normalized: $normalizedTechniqueName, Duration: $durationPerWord, TextIndex: $selectedTextIndex, TextListSize: $textListSize")
 
         if (normalizedTechniqueName == "Чтение по диагонали") {
             binding.scrollContainer.visibility = View.GONE
@@ -103,6 +103,7 @@ class ReadingTestFragment : Fragment() {
     }
 
     private fun startReadingAnimation(textView: TextView) {
+        Log.d("ReadingTestFragment", "Starting animation, isAdded=$isAdded, isDetached=$isDetached")
         val guideView = View(requireContext()).apply {
             visibility = View.INVISIBLE
             layoutParams = FrameLayout.LayoutParams(20, 2)
@@ -113,21 +114,29 @@ class ReadingTestFragment : Fragment() {
         container.addView(guideView)
 
         technique.startAnimation(textView, guideView, durationPerWord, selectedTextIndex) {
+            Log.d("ReadingTestFragment", "onAnimationEnd called, isAdded=$isAdded, isDetached=$isDetached")
             container.removeView(guideView)
             navigateToTest()
         }
     }
 
     private fun navigateToTest() {
-        val fragment = TestFragment.newInstance(selectedTextIndex, techniqueName, durationPerWord)
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .addToBackStack(null)
-            .commit()
+        if (isAdded && !isDetached && parentFragmentManager != null) {
+            Log.d("ReadingTestFragment", "Navigating to TestFragment, selectedTextIndex=$selectedTextIndex, techniqueName=$techniqueName")
+            val fragment = TestFragment.newInstance(selectedTextIndex, techniqueName, durationPerWord)
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit()
+        } else {
+            Log.w("ReadingTestFragment", "Cannot navigate: Fragment is not attached or parentFragmentManager is null")
+        }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        technique.cancelAnimation() // Останавливаем анимацию
         _binding = null
+        Log.d("ReadingTestFragment", "onDestroyView called, animation cancelled")
     }
 }

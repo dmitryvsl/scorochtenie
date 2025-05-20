@@ -475,6 +475,9 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
             start()
         }
     }
-
+    override fun cancelAnimation() {
+        animator?.cancel()
+        Log.d("SentenceReverse", "Animation cancelled")
+    }
     data class WordChunk(val word: String, val punctuation: MutableList<String>)
 }

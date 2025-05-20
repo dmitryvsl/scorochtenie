@@ -14,4 +14,7 @@ abstract class ReadingTechnique(val name: String) {
         selectedTextIndex: Int,  // новый параметр
         onAnimationEnd: () -> Unit
     )
+    open fun cancelAnimation() {
+        // Пустая реализация по умолчанию для техник без анимации
+    }
 }

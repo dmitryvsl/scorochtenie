@@ -293,4 +293,8 @@ class WordReverseTechnique : ReadingTechnique("Слова наоборот") {
             start()
         }
     }
+    override fun cancelAnimation() {
+        animator?.cancel()
+        Log.d("WordReverse", "Animation cancelled")
+    }
 }

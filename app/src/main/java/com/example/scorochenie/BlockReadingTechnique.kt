@@ -312,4 +312,8 @@ class BlockReadingTechnique : ReadingTechnique("Чтение \"блоками\""
             start()
         }
     }
+    override fun cancelAnimation() {
+        animator?.cancel()
+        Log.d("BlockReading", "Animation cancelled")
+    }
 }

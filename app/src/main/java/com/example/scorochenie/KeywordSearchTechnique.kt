@@ -290,4 +290,8 @@ class KeywordSearchTechnique : ReadingTechnique("Поиск ключевых с�
         }
         return startIndex
     }
+    override fun cancelAnimation() {
+        animator?.cancel()
+        Log.d("KeywordSearch", "Animation cancelled")
+    }
 }

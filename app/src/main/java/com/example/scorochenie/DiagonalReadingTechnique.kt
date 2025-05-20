@@ -261,4 +261,8 @@ class DiagonalReadingTechnique : ReadingTechnique("Чтение по диаго�
         textView.text = spannable
         Log.d("DiagonalReading", "Cleared highlight from text")
     }
+    override fun cancelAnimation() {
+        animator?.cancel()
+        Log.d("DiagonalReading", "Animation cancelled")
+    }
 }

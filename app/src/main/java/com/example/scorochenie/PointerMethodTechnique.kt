@@ -254,4 +254,8 @@ class PointerMethodTechnique : ReadingTechnique("Метод \"указки\"") {
         }
         return startIndex
     }
+    override fun cancelAnimation() {
+        animator?.cancel()
+        Log.d("PointerMethod", "Animation cancelled")
+    }
 }

@@ -47,6 +47,17 @@ class ReadingTestFragment : Fragment() {
         techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
         durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
 
+        // Нормализация имени техники
+        val normalizedTechniqueName = when (techniqueName) {
+            "DiagonalReadingTechnique" -> "Чтение по диагонали"
+            "KeywordSearchTechnique" -> "Поиск ключевых слов"
+            "BlockReadingTechnique" -> "Чтение блоками"
+            "SentenceReverseTechnique" -> "Предложения наоборот"
+            "WordReverseTechnique" -> "Слова наоборот"
+            "PointerMethodTechnique" -> "Метод указки"
+            else -> "Неизвестная техника"
+        }
+
         // Инициализация техники
         technique = when (techniqueName) {
             "BlockReadingTechnique" -> BlockReadingTechnique()
@@ -55,7 +66,7 @@ class ReadingTestFragment : Fragment() {
             "PointerMethodTechnique" -> PointerMethodTechnique()
             "SentenceReverseTechnique" -> SentenceReverseTechnique()
             "WordReverseTechnique" -> WordReverseTechnique()
-            else -> object : ReadingTechnique("Неизвестная техника") {
+            else -> object : ReadingTechnique(normalizedTechniqueName) {
                 override fun startAnimation(
                     textView: TextView,
                     guideView: View,
@@ -70,38 +81,17 @@ class ReadingTestFragment : Fragment() {
             }
         }
 
-        // Определяем доступные тексты с валидными вопросами
-        val validTextIndices = when (techniqueName) {
-            "DiagonalReadingTechnique" -> TextResources.diagonalTexts.indices.toList()
-            "KeywordSearchTechnique" -> TextResources.keywordTexts.indices.toList()
-            else -> {
-                val texts = TextResources.otherTexts[technique.name] ?: emptyList()
-                texts.indices.filter { index ->
-                    val questions = texts[index].questionsAndAnswers
-                    questions.isNotEmpty() && questions.all { (question, _) ->
-                        question.isNotBlank() && !question.startsWith("Вопрос ")
-                    }
-                }
-            }
+        // Выбираем размер списка текстов в зависимости от техники
+        val textListSize = when (normalizedTechniqueName) {
+            "Чтение по диагонали" -> TextResources.diagonalTexts.size
+            "Поиск ключевых слов" -> TextResources.keywordTexts.size
+            else -> TextResources.otherTexts[normalizedTechniqueName]?.size ?: 1
         }
+        selectedTextIndex = Random.nextInt(textListSize)
 
-        // Если нет валидных текстов, используем индекс 0 как запасной вариант
-        selectedTextIndex = if (validTextIndices.isNotEmpty()) {
-            validTextIndices[Random.nextInt(validTextIndices.size)]
-        } else {
-            Log.w("ReadingTest", "No valid texts with questions for $techniqueName, falling back to index 0")
-            0
-        }
+        Log.d("ReadingTest", "Technique: $techniqueName, Normalized: $normalizedTechniqueName, Duration: $durationPerWord, TextIndex: $selectedTextIndex, TextListSize: $textListSize")
 
-        val textListSize = when (techniqueName) {
-            "DiagonalReadingTechnique" -> TextResources.diagonalTexts.size
-            "KeywordSearchTechnique" -> TextResources.keywordTexts.size
-            else -> TextResources.otherTexts[technique.name]?.size ?: 1
-        }
-
-        Log.d("ReadingTest", "Technique: $techniqueName, Duration: $durationPerWord, TextIndex: $selectedTextIndex, TextListSize: $textListSize, ValidIndices: $validTextIndices")
-
-        if (techniqueName == "DiagonalReadingTechnique") {
+        if (normalizedTechniqueName == "Чтение по диагонали") {
             binding.scrollContainer.visibility = View.GONE
             binding.diagonalContainer.visibility = View.VISIBLE
             startReadingAnimation(binding.animationTextDiagonal)

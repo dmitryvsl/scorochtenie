@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.scorochenie.R
 import com.example.scorochenie.domain.Technique
+import android.widget.ImageView
 
 class MaterialsFragment : Fragment() {
 
@@ -47,6 +48,23 @@ class MaterialsFragment : Fragment() {
         recyclerView.adapter = techniqueAdapter
 
         return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Настройка обработчика клика для иконки справки
+        val helpIcon = view.findViewById<ImageView>(R.id.materials_help_icon)
+        helpIcon.setOnClickListener {
+            showHelpDialog("Здесь доступны дополнительные материалы для изучения техник скорочтения.")
+        }
+    }
+
+    private fun showHelpDialog(message: String) {
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Справка")
+            .setMessage(message)
+            .setPositiveButton("ОК", null)
+            .show()
     }
 
     private fun onTechniqueClicked(technique: Technique) {

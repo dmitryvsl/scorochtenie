@@ -41,6 +41,17 @@ class RatingFragment : Fragment() {
         binding.ratingRecyclerView.addItemDecoration(dividerItemDecoration)
 
         loadBestResults()
+        binding.ratingHelpIcon.setOnClickListener {
+            showHelpDialog("Здесь отображается ваш рейтинг по каждой технике. Учитывается лучший результат.")
+        }
+
+    }
+    private fun showHelpDialog(message: String) {
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Справка")
+            .setMessage(message)
+            .setPositiveButton("ОК", null)
+            .show()
     }
 
     private fun loadBestResults() {

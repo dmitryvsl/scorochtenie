@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.scorochenie.R
+import android.widget.ImageView
 
 class ExercisesFragment : Fragment() {
     override fun onCreateView(
@@ -42,6 +43,23 @@ class ExercisesFragment : Fragment() {
         }
 
         return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Настройка обработчика клика для иконки справки
+        val helpIcon = view.findViewById<ImageView>(R.id.exercises_help_icon)
+        helpIcon.setOnClickListener {
+            showHelpDialog("Здесь вы найдете список упражнений для тренировки скорочтения.")
+        }
+    }
+
+    private fun showHelpDialog(message: String) {
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Справка")
+            .setMessage(message)
+            .setPositiveButton("ОК", null)
+            .show()
     }
 
     private fun navigateToSpeedSelection(techniqueName: String) {

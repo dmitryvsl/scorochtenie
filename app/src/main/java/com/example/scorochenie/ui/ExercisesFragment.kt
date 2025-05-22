@@ -28,15 +28,9 @@ class ExercisesFragment : Fragment() {
             LinearLayoutManager.VERTICAL
         )
         recyclerView.addItemDecoration(dividerItemDecoration)
-        // Список техник
-        val techniques = listOf(
-            Technique("DiagonalReadingTechnique", "Чтение по диагонали"),
-            Technique("KeywordSearchTechnique", "Поиск ключевых слов"),
-            Technique("BlockReadingTechnique", "Чтение \"блоками\""),
-            Technique("SentenceReverseTechnique", "Предложения наоборот"),
-            Technique("WordReverseTechnique", "Слова наоборот"),
-            Technique("PointerMethodTechnique", "Метод \"указки\"")
-        )
+
+        // Получаем список техник из Technique
+        val techniques = Technique.getAllTechniques()
 
         // Установка адаптера
         recyclerView.adapter = TechniqueSelectionAdapter(techniques) { technique ->

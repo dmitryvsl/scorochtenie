@@ -67,5 +67,9 @@ open class Technique(val name: String, val displayName: String) {
                 }
             }
         }
+
+        fun getAllTechniques(): List<Technique> {
+            return techniqueNames.map { Technique(it.key, it.value) }
+        }
     }
 }

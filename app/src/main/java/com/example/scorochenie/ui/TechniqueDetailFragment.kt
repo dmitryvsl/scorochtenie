@@ -60,7 +60,6 @@ class TechniqueDetailFragment : Fragment() {
                 setMargins(0, 0, 0, 0)
             }
             setBackgroundColor(android.graphics.Color.BLACK)
-            Log.d("TechniqueDetail", "guideView initialized with visibility=$visibility")
         }
 
         // Проверяем, является ли техника DiagonalReadingTechnique
@@ -87,13 +86,10 @@ class TechniqueDetailFragment : Fragment() {
                     Log.d("TechniqueDetail", "DiagonalLineView set to VISIBLE")
                 } else {
                     diagonalLineView?.visibility = View.GONE
-                    Log.d("TechniqueDetail", "DiagonalLineView set to GONE")
                 }
-
                 val activeContainer = if (isDiagonalTechnique) diagonalContainer else scrollContainer
                 if (guideView.parent == null) {
                     activeContainer.addView(guideView)
-                    Log.d("TechniqueDetail", "guideView added to activeContainer, visibility=${guideView.visibility}")
                 }
 
                 val defaultDurationPerWord = 200L
@@ -104,7 +100,6 @@ class TechniqueDetailFragment : Fragment() {
                 }
                 val selectedTextIndex = Random.nextInt(textListSize)
 
-                Log.d("TechniqueDetail", "Starting animation with durationPerWord=$defaultDurationPerWord WPM, textIndex=$selectedTextIndex, textListSize=$textListSize")
 
                 animationTextView?.let { textView ->
                     technique.startAnimation(textView, guideView, defaultDurationPerWord, selectedTextIndex) {
@@ -113,7 +108,6 @@ class TechniqueDetailFragment : Fragment() {
                         animationTextView?.visibility = View.VISIBLE
                         backButton.visibility = View.VISIBLE
                         guideView.visibility = View.INVISIBLE
-                        Log.d("TechniqueDetail", "Animation ended, guideView removed and set to INVISIBLE")
                     }
                 }
             }
@@ -124,7 +118,6 @@ class TechniqueDetailFragment : Fragment() {
             val diagonalLineView = diagonalContainer.findViewById<View>(R.id.diagonal_line_view)
             diagonalLineView?.visibility = View.GONE
             guideView.visibility = View.INVISIBLE
-            Log.d("TechniqueDetail", "No animation, guideView set to INVISIBLE")
         }
 
         backButton.setOnClickListener {
@@ -139,7 +132,6 @@ class TechniqueDetailFragment : Fragment() {
         val parent = guideView.parent as? ViewGroup
         parent?.removeView(guideView)
         guideView.visibility = View.INVISIBLE
-        Log.d("TechniqueDetail", "onDestroyView: guideView removed and set to INVISIBLE")
         animationTextView = null
         scrollView = null
     }

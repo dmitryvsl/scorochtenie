@@ -127,14 +127,6 @@ class TestResult {
 }
 
 
-
-' Класс DiagonalLineView
-class DiagonalLineView {
-  - paint: Paint
-  + onMeasure()
-  + onDraw()
-}
-
 ' Внешняя зависимость
 class TextResources
 

@@ -4,20 +4,18 @@ import android.content.Context
 import com.example.scorochenie.R
 import org.xmlpull.v1.XmlPullParser
 
-// Базовый класс для текстов, только текст и вопросы
+
 data class TextData(
     val text: String,
     val questionsAndAnswers: List<Pair<String, List<String>>>
 )
 
-// Текст для "Чтение по диагонали" с breakWords
 data class DiagonalTextData(
     val text: String,
     val breakWords: List<String>,
     val questionsAndAnswers: List<Pair<String, List<String>>>
 )
 
-// Текст для "Поиск ключевых слов" с keyWords
 data class KeywordTextData(
     val text: String,
     val keyWords: List<String>,
@@ -25,12 +23,10 @@ data class KeywordTextData(
 )
 
 object TextResources {
-    // Списки для хранения текстов
     private var diagonalTexts: List<DiagonalTextData> = emptyList()
     private var keywordTexts: List<KeywordTextData> = emptyList()
     private var otherTexts: Map<String, List<TextData>> = emptyMap()
 
-    // Инициализация текстов из XML
     fun initialize(context: Context) {
         try {
             val parser = context.resources.getXml(R.xml.texts)
@@ -45,7 +41,6 @@ object TextResources {
             var currentQuestions: MutableList<Pair<String, List<String>>>? = null
             var currentQuestionText: StringBuilder? = null
             var currentAnswers: MutableList<String>? = null
-            var currentCorrectAnswer: String? = null
 
             var eventType = parser.eventType
             while (eventType != XmlPullParser.END_DOCUMENT) {
@@ -87,7 +82,6 @@ object TextResources {
                                 val answer = parser.nextText().trim()
                                 currentAnswers?.add(answer)
                                 if (parser.getAttributeValue(null, "correct") == "true") {
-                                    currentCorrectAnswer = answer
                                 }
                             }
                         }
@@ -138,7 +132,6 @@ object TextResources {
                                 }
                                 currentQuestionText = null
                                 currentAnswers = null
-                                currentCorrectAnswer = null
                             }
                         }
                     }
@@ -151,14 +144,12 @@ object TextResources {
             otherTexts = otherMap
         } catch (e: Exception) {
             e.printStackTrace()
-            // В случае ошибки задаем пустые списки
             diagonalTexts = emptyList()
             keywordTexts = emptyList()
             otherTexts = emptyMap()
         }
     }
 
-    // Геттеры для доступа к текстам
     fun getDiagonalTexts(): List<DiagonalTextData> = diagonalTexts
     fun getKeywordTexts(): List<KeywordTextData> = keywordTexts
     fun getOtherTexts(): Map<String, List<TextData>> = otherTexts

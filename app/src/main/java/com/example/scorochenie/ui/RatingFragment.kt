@@ -33,7 +33,6 @@ class RatingFragment : Fragment() {
         binding.ratingRecyclerView.adapter = adapter
         binding.ratingRecyclerView.layoutManager = LinearLayoutManager(context)
 
-        // Добавляем разделитель
         val dividerItemDecoration = DividerItemDecoration(
             binding.ratingRecyclerView.context,
             LinearLayoutManager.VERTICAL
@@ -61,7 +60,6 @@ class RatingFragment : Fragment() {
         val sharedPreferences = requireContext().getSharedPreferences("TestResults", Context.MODE_PRIVATE)
         val allEntries = sharedPreferences.all
 
-        // Собираем все результаты
         val results = mutableListOf<TestResult>()
         for (entry in allEntries) {
             val jsonString = entry.value as? String ?: continue
@@ -72,7 +70,7 @@ class RatingFragment : Fragment() {
                     durationPerWord = json.getLong("durationPerWord"),
                     score = json.getInt("score"),
                     totalQuestions = json.getInt("totalQuestions"),
-                    timestamp = json.optLong("timestamp", 0L) // Используем optLong для обратной совместимости
+                    timestamp = json.optLong("timestamp", 0L)
                 )
                 results.add(result)
             } catch (e: Exception) {
@@ -80,14 +78,12 @@ class RatingFragment : Fragment() {
             }
         }
 
-        // Группируем по методике, выбираем лучший результат по score, сортируем по последнему timestamp
         val bestResults = results.groupBy { it.techniqueName }
             .mapValues { entry ->
-                entry.value.maxByOrNull { it.score }!! // Выбираем результат с максимальным score
+                entry.value.maxByOrNull { it.score }!!
             }
             .values
             .sortedByDescending { techniqueResults ->
-                // Находим максимальный timestamp для этой методики
                 results.filter { it.techniqueName == techniqueResults.techniqueName }
                     .maxOfOrNull { it.timestamp } ?: 0L
             }

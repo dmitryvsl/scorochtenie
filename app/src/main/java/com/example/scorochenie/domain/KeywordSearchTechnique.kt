@@ -197,7 +197,6 @@ class KeywordSearchTechnique : Technique("KeywordSearchTechnique", "Поиск �
         }
 
         val startLine = layout.getLineForOffset(wordStartIndex)
-        val endLine = layout.getLineForOffset(wordEndIndex)
         val startX = layout.getPrimaryHorizontal(wordStartIndex)
         var endX = layout.getPrimaryHorizontal(wordEndIndex)
         if (endX == startX) {

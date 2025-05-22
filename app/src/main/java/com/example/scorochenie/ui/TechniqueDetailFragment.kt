@@ -40,7 +40,6 @@ class TechniqueDetailFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_technique_detail, container, false)
         val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
 
-        // Используем Technique.createTechnique для создания техники
         technique = Technique.createTechnique(techniqueName)
 
         val titleTextView = view.findViewById<TextView>(R.id.technique_title)
@@ -61,14 +60,12 @@ class TechniqueDetailFragment : Fragment() {
             setBackgroundColor(android.graphics.Color.BLACK)
         }
 
-        // Проверяем, является ли техника DiagonalReadingTechnique
         val isDiagonalTechnique = technique.displayName == "Чтение по диагонали"
         diagonalContainer.visibility = if (isDiagonalTechnique) View.VISIBLE else View.GONE
         scrollContainer.visibility = if (isDiagonalTechnique) View.GONE else View.VISIBLE
         animationTextView = view.findViewById(if (isDiagonalTechnique) R.id.animation_text_diagonal else R.id.animation_text_scroll)
         scrollView = if (isDiagonalTechnique) null else view.findViewById(R.id.scrollView)
 
-        // Проверяем, поддерживает ли техника анимацию
         val isAnimationSupported = technique.description.toString() != "Описание для этой техники недоступно"
         if (isAnimationSupported) {
             animationTextView?.visibility = View.GONE
@@ -82,7 +79,6 @@ class TechniqueDetailFragment : Fragment() {
                 val diagonalLineView = diagonalContainer.findViewById<View>(R.id.diagonal_line_view)
                 if (isDiagonalTechnique && diagonalLineView != null) {
                     diagonalLineView.visibility = View.VISIBLE
-                    Log.d("TechniqueDetail", "DiagonalLineView set to VISIBLE")
                 } else {
                     diagonalLineView?.visibility = View.GONE
                 }

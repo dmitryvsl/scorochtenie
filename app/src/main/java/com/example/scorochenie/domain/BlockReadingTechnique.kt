@@ -187,8 +187,6 @@ class BlockReadingTechnique : Technique("BlockReadingTechnique", "Чтение �
 
         val firstLineIndex = currentBlockIndex * 2
         val secondLineIndex = min(firstLineIndex + 1, lineCount - 1)
-        val startIndex = lines[firstLineIndex].first
-        val endIndex = lines[secondLineIndex].last
 
         val firstLineStartX = layout.getLineLeft(firstLineIndex)
         val firstLineEndX = layout.getLineRight(firstLineIndex)

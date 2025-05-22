@@ -18,10 +18,10 @@ abstract class Technique(val name: String, val displayName: String) {
 
     companion object {
         private val techniqueNames = mapOf(
-            "BlockReadingTechnique" to "Чтение \"блоками\"",
+            "BlockReadingTechnique" to "Чтение блоками",
             "DiagonalReadingTechnique" to "Чтение по диагонали",
             "KeywordSearchTechnique" to "Поиск ключевых слов",
-            "PointerMethodTechnique" to "Метод \"указки\"",
+            "PointerMethodTechnique" to "Метод указки",
             "SentenceReverseTechnique" to "Предложения наоборот",
             "WordReverseTechnique" to "Слова наоборот"
         )

@@ -2,7 +2,6 @@ package com.example.scorochenie.ui
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,9 +9,11 @@ import android.widget.RadioButton
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.example.scorochenie.domain.Technique
 import com.example.scorochenie.domain.TextResources
 import com.example.scorochenie.databinding.FragmentTestBinding
 import org.json.JSONObject
+import android.util.Log
 
 class TestFragment : Fragment() {
 
@@ -54,8 +55,6 @@ class TestFragment : Fragment() {
         techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
         durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
 
-        Log.d("TestFragment", "onViewCreated: techniqueName='$techniqueName', currentTextIndex=$currentTextIndex, durationPerWord=$durationPerWord")
-
         displayQuestion(0)
 
         binding.btnSubmit.setOnClickListener {
@@ -64,29 +63,13 @@ class TestFragment : Fragment() {
     }
 
     private fun displayQuestion(index: Int) {
-        val normalizedTechniqueName = when (techniqueName) {
-            "DiagonalReadingTechnique" -> "Чтение по диагонали"
-            "KeywordSearchTechnique" -> "Поиск ключевых слов"
-            "BlockReadingTechnique" -> "Чтение блоками"
-            "SentenceReverseTechnique" -> "Предложения наоборот"
-            "WordReverseTechnique" -> "Слова наоборот"
-            "PointerMethodTechnique" -> "Метод указки"
-            else -> techniqueName
-        }
-
-        Log.d("TestFragment", "displayQuestion: index=$index, normalizedTechniqueName='$normalizedTechniqueName'")
+        val normalizedTechniqueName = Technique.getDisplayName(techniqueName)
 
         val questions = when (normalizedTechniqueName) {
             "Чтение по диагонали" -> TextResources.getDiagonalTexts().getOrNull(currentTextIndex)?.questionsAndAnswers
             "Поиск ключевых слов" -> TextResources.getKeywordTexts().getOrNull(currentTextIndex)?.questionsAndAnswers
-            else -> {
-                Log.d("TestFragment", "Attempting to access otherTexts with key: '$normalizedTechniqueName'")
-                Log.d("TestFragment", "Available keys in otherTexts: ${TextResources.getOtherTexts().keys}")
-                TextResources.getOtherTexts()[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers
-            }
+            else -> TextResources.getOtherTexts()[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers
         }
-
-        Log.d("TestFragment", "Questions: size=${questions?.size ?: 0}, questions=$questions")
 
         if (questions.isNullOrEmpty()) {
             Log.e("TestFragment", "No questions found for technique='$normalizedTechniqueName', textIndex=$currentTextIndex")
@@ -111,11 +94,10 @@ class TestFragment : Fragment() {
                     text = option
                     id = View.generateViewId()
                     textSize = 16f
-                    setTextColor(context?.let { ContextCompat.getColor(it, android.R.color.white) } ?: android.graphics.Color.WHITE)
+                    setTextColor(context?.let { ContextCompat.getColor(it, android.R.color.black) } ?: android.graphics.Color.WHITE)
                 }
                 binding.radioGroup.addView(radioButton)
             }
-            Log.d("TestFragment", "Displayed question $index: '${questionPair.first}', options=$options")
         } else {
             showResult()
         }
@@ -135,30 +117,18 @@ class TestFragment : Fragment() {
             score++
         }
 
-        Log.d("TestFragment", "Checked answer: userAnswer='$userAnswer', correctAnswer='$correctAnswer', score=$score")
-
         binding.radioGroup.clearCheck()
         displayQuestion(((binding.questionText.tag as? Pair<*, *>)?.first as? Int ?: 0) + 1)
     }
 
     private fun showResult() {
-        val normalizedTechniqueName = when (techniqueName) {
-            "DiagonalReadingTechnique" -> "Чтение по диагонали"
-            "KeywordSearchTechnique" -> "Поиск ключевых слов"
-            "BlockReadingTechnique" -> "Чтение блоками"
-            "SentenceReverseTechnique" -> "Предложения наоборот"
-            "WordReverseTechnique" -> "Слова наоборот"
-            "PointerMethodTechnique" -> "Метод указки"
-            else -> techniqueName
-        }
+        val normalizedTechniqueName = Technique.getDisplayName(techniqueName)
 
         val totalQuestions = when (normalizedTechniqueName) {
             "Чтение по диагонали" -> TextResources.getDiagonalTexts().getOrNull(currentTextIndex)?.questionsAndAnswers?.size
             "Поиск ключевых слов" -> TextResources.getKeywordTexts().getOrNull(currentTextIndex)?.questionsAndAnswers?.size
             else -> TextResources.getOtherTexts()[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
         } ?: 0
-
-        Log.d("TestFragment", "showResult: score=$score, totalQuestions=$totalQuestions, techniqueName='$normalizedTechniqueName'")
 
         binding.tvQuestionHeader.visibility = View.GONE
         binding.questionText.text = "Тест завершён! Ваш результат: $score из $totalQuestions"
@@ -203,9 +173,6 @@ class TestFragment : Fragment() {
             """
             editor.putString(key, resultJson)
             editor.apply()
-            Log.d("TestFragment", "Saved result: key=$key, resultJson=$resultJson")
-        } else {
-            Log.d("TestFragment", "Skipped saving: new result (score=$score, duration=$durationPerWord) not better than existing")
         }
     }
 

@@ -126,8 +126,17 @@ class TestResult {
   - timestamp: Long
 }
 
-' Внешние зависимости
-class Technique
+
+
+' Класс DiagonalLineView
+class DiagonalLineView {
+  - paint: Paint
+  + onMeasure()
+  + onDraw()
+}
+
+' Внешняя зависимость
+class TextResources
 
 ' Отношения
 ExercisesFragment --|> Fragment
@@ -137,6 +146,7 @@ ReadingTestFragment --|> Fragment
 SpeedSelectionFragment --|> Fragment
 TechniqueDetailFragment --|> Fragment
 TestFragment --|> Fragment
+
 
 MainActivity --> ExercisesFragment : creates
 MainActivity --> MaterialsFragment : creates
@@ -167,11 +177,13 @@ TechniqueSelectionAdapter --> Technique : uses
 TechniqueDetailFragment --> Technique : uses
 TechniqueDetailFragment --> TextResources : uses
 
+TestFragment --> Technique : uses
 TestFragment --> TextResources : uses
 TestFragment --> TestResult : uses
 
 RatingAdapter --> TestResult : uses
 RatingAdapter --> Technique : uses
+
 
 hide empty members
 @enduml

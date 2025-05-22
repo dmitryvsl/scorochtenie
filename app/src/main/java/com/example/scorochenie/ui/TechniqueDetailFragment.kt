@@ -10,17 +10,10 @@ import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import com.example.scorochenie.domain.BlockReadingTechnique
-import com.example.scorochenie.domain.DiagonalReadingTechnique
-import com.example.scorochenie.domain.KeywordSearchTechnique
-import com.example.scorochenie.domain.PointerMethodTechnique
 import com.example.scorochenie.R
 import com.example.scorochenie.domain.ReadingTechnique
-import com.example.scorochenie.domain.SentenceReverseTechnique
 import com.example.scorochenie.domain.TextResources
-import com.example.scorochenie.domain.WordReverseTechnique
 import com.example.scorochenie.domain.Technique
-import android.text.SpannableString
 import kotlin.random.Random
 
 class TechniqueDetailFragment : Fragment() {
@@ -48,39 +41,8 @@ class TechniqueDetailFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_technique_detail, container, false)
         val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
 
-        technique = when (techniqueName) {
-            "DiagonalReadingTechnique" -> DiagonalReadingTechnique()
-            "KeywordSearchTechnique" -> KeywordSearchTechnique()
-            "BlockReadingTechnique" -> BlockReadingTechnique()
-            "SentenceReverseTechnique" -> SentenceReverseTechnique()
-            "WordReverseTechnique" -> WordReverseTechnique()
-            "PointerMethodTechnique" -> PointerMethodTechnique()
-            else -> object : ReadingTechnique(
-                "UnknownTechnique",
-                Technique.getDisplayName(techniqueName).let {
-                    if (it == techniqueName) "Неизвестная техника" else it
-                }
-            ) {
-                override val description: SpannableString
-                    get() = SpannableString("Описание для этой техники недоступно")
-
-                override fun startAnimation(
-                    textView: TextView,
-                    guideView: View,
-                    durationPerWord: Long,
-                    selectedTextIndex: Int,
-                    onAnimationEnd: () -> Unit
-                ) {
-                    textView.text = "Анимация для этой техники недоступна"
-                    guideView.visibility = View.INVISIBLE
-                    onAnimationEnd()
-                }
-
-                override fun cancelAnimation() {
-                    // Пустая реализация для неизвестной техники
-                }
-            }
-        }
+        // Используем Technique.createTechnique для создания техники
+        technique = Technique.createTechnique(techniqueName)
 
         val titleTextView = view.findViewById<TextView>(R.id.technique_title)
         val descriptionTextView = view.findViewById<TextView>(R.id.technique_description)
@@ -101,15 +63,16 @@ class TechniqueDetailFragment : Fragment() {
             Log.d("TechniqueDetail", "guideView initialized with visibility=$visibility")
         }
 
-        val isDiagonalTechnique = technique is DiagonalReadingTechnique
+        // Проверяем, является ли техника DiagonalReadingTechnique
+        val isDiagonalTechnique = technique.displayName == "Чтение по диагонали"
         diagonalContainer.visibility = if (isDiagonalTechnique) View.VISIBLE else View.GONE
         scrollContainer.visibility = if (isDiagonalTechnique) View.GONE else View.VISIBLE
         animationTextView = view.findViewById(if (isDiagonalTechnique) R.id.animation_text_diagonal else R.id.animation_text_scroll)
         scrollView = if (isDiagonalTechnique) null else view.findViewById(R.id.scrollView)
 
-        if (technique is DiagonalReadingTechnique || technique is KeywordSearchTechnique || technique is BlockReadingTechnique ||
-            technique is PointerMethodTechnique || technique is SentenceReverseTechnique || technique is WordReverseTechnique
-        ) {
+        // Проверяем, поддерживает ли техника анимацию
+        val isAnimationSupported = technique.description.toString() != "Описание для этой техники недоступно"
+        if (isAnimationSupported) {
             animationTextView?.visibility = View.GONE
             startButton.visibility = View.VISIBLE
             startButton.setOnClickListener {
@@ -133,10 +96,10 @@ class TechniqueDetailFragment : Fragment() {
                     Log.d("TechniqueDetail", "guideView added to activeContainer, visibility=${guideView.visibility}")
                 }
 
-                val defaultDurationPerWord = 400L
-                val textListSize = when (technique) {
-                    is DiagonalReadingTechnique -> TextResources.getDiagonalTexts().size
-                    is KeywordSearchTechnique -> TextResources.getKeywordTexts().size
+                val defaultDurationPerWord = 200L
+                val textListSize = when (technique.displayName) {
+                    "Чтение по диагонали" -> TextResources.getDiagonalTexts().size
+                    "Поиск ключевых слов" -> TextResources.getKeywordTexts().size
                     else -> TextResources.getOtherTexts()[technique.displayName]?.size ?: 1
                 }
                 val selectedTextIndex = Random.nextInt(textListSize)

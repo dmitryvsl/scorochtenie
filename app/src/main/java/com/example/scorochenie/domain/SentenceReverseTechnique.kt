@@ -54,8 +54,8 @@ class SentenceReverseTechnique : ReadingTechnique("SentenceReverseTechnique", "Ð
         lastScrollY = 0
         isAnimationActive = true
 
-        val safeDurationPerWord = if (durationPerWord <= 0) 400L else durationPerWord
-        val wordDurationMs = (60_000 / safeDurationPerWord).coerceAtLeast(50L)
+        val safeDurationPerWord = if (durationPerWord <= 0) 200L else durationPerWord
+        val wordDurationMs = (60_000 / safeDurationPerWord).coerceAtLeast(100L)
 
         scrollView = textView.parent as? ScrollView
 

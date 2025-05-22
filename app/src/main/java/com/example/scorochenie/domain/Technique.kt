@@ -56,7 +56,6 @@ abstract class Technique(val name: String, val displayName: String) {
                     }
 
                     override fun cancelAnimation() {
-                        // Пустая реализация для неизвестной техники
                     }
                 }
             }

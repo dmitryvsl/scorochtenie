@@ -37,14 +37,10 @@ class SpeedSelectionFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Получаем techniqueName из аргументов
         val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
-
-        // Используем Technique.getDisplayName для получения отображаемого имени
         val techniqueDisplayName = Technique.getDisplayName(techniqueName)
         binding.tvTechniqueTitle.text = techniqueDisplayName
 
-        // Обработчики кнопок скорости
         binding.btnSlowSpeed.setOnClickListener {
             navigateToReadingTest(techniqueName, 200L)
         }

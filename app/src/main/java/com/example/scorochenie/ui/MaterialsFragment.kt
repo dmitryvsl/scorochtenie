@@ -12,21 +12,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.scorochenie.R
 import com.example.scorochenie.domain.Technique
 import android.app.AlertDialog
-import android.util.Log
 
 class MaterialsFragment : Fragment() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var techniqueAdapter: TechniqueAdapter
-
-    private val techniqueNames = listOf(
-        "DiagonalReadingTechnique",
-        "KeywordSearchTechnique",
-        "BlockReadingTechnique",
-        "SentenceReverseTechnique",
-        "WordReverseTechnique",
-        "PointerMethodTechnique"
-    )
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -43,11 +33,7 @@ class MaterialsFragment : Fragment() {
         )
         recyclerView.addItemDecoration(dividerItemDecoration)
 
-        val techniques = techniqueNames.map { name ->
-            Technique.createTechnique(name).also {
-                Log.d("MaterialsFragment", "Technique created: name=${it.name}, displayName=${it.displayName}")
-            }
-        }
+        val techniques = Technique.getAllTechniques()
 
         techniqueAdapter = TechniqueAdapter(techniques) { technique ->
             onTechniqueClicked(technique)
@@ -81,7 +67,6 @@ class MaterialsFragment : Fragment() {
     }
 
     private fun onTechniqueClicked(technique: Technique) {
-        Log.d("MaterialsFragment", "Clicked technique: ${technique.name}, displayName: ${technique.displayName}")
         val detailFragment = TechniqueDetailFragment.newInstance(technique.name)
         parentFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, detailFragment)

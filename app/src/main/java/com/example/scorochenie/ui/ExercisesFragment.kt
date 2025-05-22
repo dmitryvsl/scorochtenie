@@ -19,20 +19,16 @@ class ExercisesFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_exercises, container, false)
 
-        // Настройка RecyclerView
         val recyclerView = view.findViewById<RecyclerView>(R.id.exercises_list)
         recyclerView.layoutManager = LinearLayoutManager(context)
-        // Добавляем разделитель
         val dividerItemDecoration = DividerItemDecoration(
             recyclerView.context,
             LinearLayoutManager.VERTICAL
         )
         recyclerView.addItemDecoration(dividerItemDecoration)
 
-        // Получаем список техник из Technique
         val techniques = Technique.getAllTechniques()
 
-        // Установка адаптера
         recyclerView.adapter = TechniqueSelectionAdapter(techniques) { technique ->
             navigateToSpeedSelection(technique.name)
         }
@@ -42,7 +38,6 @@ class ExercisesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        // Настройка обработчика клика для иконки справки
         val helpIcon = view.findViewById<ImageView>(R.id.exercises_help_icon)
         helpIcon.setOnClickListener {
             showHelpDialog("Здесь вы найдете список упражнений для тренировки скорочтения. Погрузитесь в процесс и развивайте свои навыки чтения:\n" +

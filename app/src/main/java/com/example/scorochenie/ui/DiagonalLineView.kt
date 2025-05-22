@@ -31,7 +31,6 @@ public class DiagonalLineView @JvmOverloads constructor(
         setMeasuredDimension(width, height)
         Log.d("DiagonalLineView", "Measured size: ${width}x${height}")
 
-        // Наблюдение за изменением размеров animationTextView
         if (textView != null) {
             textView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
                 if (textView.measuredHeight != measuredHeight) {

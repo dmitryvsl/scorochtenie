@@ -14,7 +14,7 @@ import androidx.core.animation.addListener
 import android.graphics.Typeface
 import android.text.style.StyleSpan
 
-class PointerMethodTechnique : ReadingTechnique("PointerMethodTechnique", "Метод \"указки\"") {
+class PointerMethodTechnique : ReadingTechnique("PointerMethodTechnique", "Метод указки") {
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""

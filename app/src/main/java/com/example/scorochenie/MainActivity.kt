@@ -15,7 +15,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Настройка BottomNavigationView
         val bottomNavigation = findViewById<BottomNavigationView>(R.id.bottom_navigation)
         bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
@@ -35,7 +34,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Загружаем первый фрагмент при запуске
         if (savedInstanceState == null) {
             loadFragment(RatingFragment())
         }

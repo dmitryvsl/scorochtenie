@@ -3,7 +3,7 @@ package com.example.scorochenie.ui
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.example.scorochenie.data.TestResult
+import com.example.scorochenie.domain.TestResult
 import com.example.scorochenie.databinding.ItemRatingBinding
 import com.example.scorochenie.domain.Technique
 

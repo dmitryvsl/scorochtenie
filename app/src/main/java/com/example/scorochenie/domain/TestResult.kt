@@ -1,4 +1,4 @@
-package com.example.scorochenie.data
+package com.example.scorochenie.domain
 
 data class TestResult(
     val techniqueName: String,

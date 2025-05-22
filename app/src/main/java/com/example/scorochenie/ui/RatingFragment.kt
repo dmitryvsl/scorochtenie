@@ -8,7 +8,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.scorochenie.data.TestResult
+import com.example.scorochenie.domain.TestResult
 import com.example.scorochenie.databinding.FragmentRatingBinding
 import org.json.JSONObject
 

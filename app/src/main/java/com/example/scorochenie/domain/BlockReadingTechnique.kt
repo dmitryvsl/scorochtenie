@@ -13,6 +13,7 @@ import android.widget.TextView
 import androidx.core.animation.addListener
 import kotlin.math.min
 import android.text.style.StyleSpan
+
 class BlockReadingTechnique : ReadingTechnique("BlockReadingTechnique", "Чтение \"блоками\"") {
     private var currentBlockIndex = 0
     private var selectedTextIndex = 0
@@ -46,7 +47,7 @@ class BlockReadingTechnique : ReadingTechnique("BlockReadingTechnique", "Чте�
     ) {
         try {
             this.selectedTextIndex = selectedTextIndex
-            fullText = TextResources.otherTexts["Чтение блоками"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
+            fullText = TextResources.getOtherTexts()["Чтение блоками"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
             if (fullText.isEmpty()) {
                 textView.text = "Текст недоступен"
                 onAnimationEnd()

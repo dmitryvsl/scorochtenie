@@ -6,6 +6,7 @@ import androidx.fragment.app.Fragment
 import com.example.scorochenie.ui.ExercisesFragment
 import com.example.scorochenie.ui.MaterialsFragment
 import com.example.scorochenie.ui.RatingFragment
+import com.example.scorochenie.domain.TextResources
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
@@ -38,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         if (savedInstanceState == null) {
             loadFragment(RatingFragment())
         }
+        TextResources.initialize(this)
     }
 
     private fun loadFragment(fragment: Fragment) {

@@ -77,12 +77,12 @@ class TestFragment : Fragment() {
         Log.d("TestFragment", "displayQuestion: index=$index, normalizedTechniqueName='$normalizedTechniqueName'")
 
         val questions = when (normalizedTechniqueName) {
-            "Чтение по диагонали" -> TextResources.diagonalTexts.getOrNull(currentTextIndex)?.questionsAndAnswers
-            "Поиск ключевых слов" -> TextResources.keywordTexts.getOrNull(currentTextIndex)?.questionsAndAnswers
+            "Чтение по диагонали" -> TextResources.getDiagonalTexts().getOrNull(currentTextIndex)?.questionsAndAnswers
+            "Поиск ключевых слов" -> TextResources.getKeywordTexts().getOrNull(currentTextIndex)?.questionsAndAnswers
             else -> {
                 Log.d("TestFragment", "Attempting to access otherTexts with key: '$normalizedTechniqueName'")
-                Log.d("TestFragment", "Available keys in otherTexts: ${TextResources.otherTexts.keys}")
-                TextResources.otherTexts[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers
+                Log.d("TestFragment", "Available keys in otherTexts: ${TextResources.getOtherTexts().keys}")
+                TextResources.getOtherTexts()[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers
             }
         }
 
@@ -111,7 +111,7 @@ class TestFragment : Fragment() {
                     text = option
                     id = View.generateViewId()
                     textSize = 16f
-                    setTextColor(ContextCompat.getColor(context, android.R.color.white))
+                    setTextColor(context?.let { ContextCompat.getColor(it, android.R.color.white) } ?: android.graphics.Color.WHITE)
                 }
                 binding.radioGroup.addView(radioButton)
             }
@@ -153,9 +153,9 @@ class TestFragment : Fragment() {
         }
 
         val totalQuestions = when (normalizedTechniqueName) {
-            "Чтение по диагонали" -> TextResources.diagonalTexts.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
-            "Поиск ключевых слов" -> TextResources.keywordTexts.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
-            else -> TextResources.otherTexts[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+            "Чтение по диагонали" -> TextResources.getDiagonalTexts().getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+            "Поиск ключевых слов" -> TextResources.getKeywordTexts().getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+            else -> TextResources.getOtherTexts()[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
         } ?: 0
 
         Log.d("TestFragment", "showResult: score=$score, totalQuestions=$totalQuestions, techniqueName='$normalizedTechniqueName'")
@@ -171,9 +171,8 @@ class TestFragment : Fragment() {
     private fun saveTestResult(normalizedTechniqueName: String, totalQuestions: Int) {
         val sharedPreferences = requireContext().getSharedPreferences("TestResults", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
-        val key = "result_$normalizedTechniqueName" // Единый ключ для техники
+        val key = "result_$normalizedTechniqueName"
 
-        // Получаем существующий результат, если он есть
         val existingResultJson = sharedPreferences.getString(key, null)
         var shouldSave = true
 
@@ -183,7 +182,6 @@ class TestFragment : Fragment() {
                 val existingScore = existingResult.getInt("score")
                 val existingDuration = existingResult.getLong("durationPerWord")
 
-                // Сохраняем, если новый score выше, или если score равен, но durationPerWord меньше
                 if (score < existingScore || (score == existingScore && durationPerWord >= existingDuration)) {
                     shouldSave = false
                 }

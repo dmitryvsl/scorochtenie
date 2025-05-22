@@ -13,6 +13,7 @@ import android.widget.TextView
 import androidx.core.animation.addListener
 import android.graphics.Typeface
 import android.text.style.StyleSpan
+
 class PointerMethodTechnique : ReadingTechnique("PointerMethodTechnique", "Метод \"указки\"") {
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
@@ -45,7 +46,7 @@ class PointerMethodTechnique : ReadingTechnique("PointerMethodTechnique", "Ме�
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        fullText = TextResources.otherTexts["Метод указки"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
+        fullText = TextResources.getOtherTexts()["Метод указки"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
         currentWordIndex = 0
         lastScrollY = 0
         isAnimationActive = true

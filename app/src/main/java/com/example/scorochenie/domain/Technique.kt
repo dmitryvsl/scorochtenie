@@ -60,6 +60,10 @@ open class Technique(val name: String, val displayName: String) {
                         guideView.visibility = View.INVISIBLE
                         onAnimationEnd()
                     }
+
+                    override fun cancelAnimation() {
+                        // Пустая реализация для неизвестной техники
+                    }
                 }
             }
         }

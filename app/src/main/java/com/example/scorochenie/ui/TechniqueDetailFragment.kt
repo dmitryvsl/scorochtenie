@@ -48,7 +48,6 @@ class TechniqueDetailFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_technique_detail, container, false)
         val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
 
-        // Инициализация техники на основе технического имени
         technique = when (techniqueName) {
             "DiagonalReadingTechnique" -> DiagonalReadingTechnique()
             "KeywordSearchTechnique" -> KeywordSearchTechnique()
@@ -76,6 +75,10 @@ class TechniqueDetailFragment : Fragment() {
                     guideView.visibility = View.INVISIBLE
                     onAnimationEnd()
                 }
+
+                override fun cancelAnimation() {
+                    // Пустая реализация для неизвестной техники
+                }
             }
         }
 
@@ -98,14 +101,12 @@ class TechniqueDetailFragment : Fragment() {
             Log.d("TechniqueDetail", "guideView initialized with visibility=$visibility")
         }
 
-        // Выбор контейнера и TextView
         val isDiagonalTechnique = technique is DiagonalReadingTechnique
         diagonalContainer.visibility = if (isDiagonalTechnique) View.VISIBLE else View.GONE
         scrollContainer.visibility = if (isDiagonalTechnique) View.GONE else View.VISIBLE
         animationTextView = view.findViewById(if (isDiagonalTechnique) R.id.animation_text_diagonal else R.id.animation_text_scroll)
         scrollView = if (isDiagonalTechnique) null else view.findViewById(R.id.scrollView)
 
-        // Логика для кнопки и анимации
         if (technique is DiagonalReadingTechnique || technique is KeywordSearchTechnique || technique is BlockReadingTechnique ||
             technique is PointerMethodTechnique || technique is SentenceReverseTechnique || technique is WordReverseTechnique
         ) {
@@ -117,7 +118,6 @@ class TechniqueDetailFragment : Fragment() {
                 animationTextView?.visibility = View.VISIBLE
                 backButton.visibility = View.VISIBLE
 
-                // Управление видимостью DiagonalLineView
                 val diagonalLineView = diagonalContainer.findViewById<View>(R.id.diagonal_line_view)
                 if (isDiagonalTechnique && diagonalLineView != null) {
                     diagonalLineView.visibility = View.VISIBLE
@@ -127,20 +127,17 @@ class TechniqueDetailFragment : Fragment() {
                     Log.d("TechniqueDetail", "DiagonalLineView set to GONE")
                 }
 
-                // Добавляем guideView в активный контейнер
                 val activeContainer = if (isDiagonalTechnique) diagonalContainer else scrollContainer
                 if (guideView.parent == null) {
                     activeContainer.addView(guideView)
                     Log.d("TechniqueDetail", "guideView added to activeContainer, visibility=${guideView.visibility}")
                 }
 
-                // Устанавливаем значение durationPerWord по умолчанию (400 WPM)
                 val defaultDurationPerWord = 400L
-                // Выбираем размер списка текстов в зависимости от техники
                 val textListSize = when (technique) {
-                    is DiagonalReadingTechnique -> TextResources.diagonalTexts.size
-                    is KeywordSearchTechnique -> TextResources.keywordTexts.size
-                    else -> TextResources.otherTexts[technique.displayName]?.size ?: 1
+                    is DiagonalReadingTechnique -> TextResources.getDiagonalTexts().size
+                    is KeywordSearchTechnique -> TextResources.getKeywordTexts().size
+                    else -> TextResources.getOtherTexts()[technique.displayName]?.size ?: 1
                 }
                 val selectedTextIndex = Random.nextInt(textListSize)
 

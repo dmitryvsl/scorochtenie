@@ -49,7 +49,7 @@ class KeywordSearchTechnique : ReadingTechnique("KeywordSearchTechnique", "По�
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        fullText = TextResources.keywordTexts.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
+        fullText = TextResources.getKeywordTexts().getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
         currentWordIndex = 0
         lastScrollY = 0
         isAnimationActive = true
@@ -123,7 +123,7 @@ class KeywordSearchTechnique : ReadingTechnique("KeywordSearchTechnique", "По�
             spannable.removeSpan(span)
         }
 
-        val keyWords = TextResources.keywordTexts.getOrNull(selectedTextIndex)?.keyWords ?: emptyList()
+        val keyWords = TextResources.getKeywordTexts().getOrNull(selectedTextIndex)?.keyWords ?: emptyList()
         keyWords.forEach { keyWord ->
             var startIndex = currentPartText.indexOf(keyWord, ignoreCase = false)
             while (startIndex != -1) {
@@ -279,6 +279,6 @@ class KeywordSearchTechnique : ReadingTechnique("KeywordSearchTechnique", "По�
     override fun cancelAnimation() {
         isAnimationActive = false
         animator?.cancel()
-        handler.removeCallbacksAndMessages(null) // Отменяем все отложенные задачи
+        handler.removeCallbacksAndMessages(null)
     }
 }

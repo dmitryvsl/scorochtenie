@@ -12,6 +12,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.animation.addListener
 import android.text.style.StyleSpan
+
 class SentenceReverseTechnique : ReadingTechnique("SentenceReverseTechnique", "Предложения наоборот") {
     private var currentSentenceIndex = 0
     private var currentWordIndexInSentence = 0
@@ -46,7 +47,7 @@ class SentenceReverseTechnique : ReadingTechnique("SentenceReverseTechnique", "�
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        fullText = reverseSentences(TextResources.otherTexts["Предложения наоборот"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: "")
+        fullText = reverseSentences(TextResources.getOtherTexts()["Предложения наоборот"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: "")
         currentPosition = 0
         currentSentenceIndex = 0
         currentWordIndexInSentence = 0

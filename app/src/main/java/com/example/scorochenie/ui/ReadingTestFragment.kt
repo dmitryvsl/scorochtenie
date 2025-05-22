@@ -25,7 +25,7 @@ class ReadingTestFragment : Fragment() {
             val fragment = ReadingTestFragment()
             val args = Bundle()
             args.putString(ARG_TECHNIQUE_NAME, techniqueName)
-            args.putLong(ARG_DURATION_PER_WORD, durationPerWord) // Исправлено
+            args.putLong(ARG_DURATION_PER_WORD, durationPerWord)
             fragment.arguments = args
             return fragment
         }
@@ -56,9 +56,9 @@ class ReadingTestFragment : Fragment() {
         val normalizedTechniqueName = technique.displayName
 
         val textListSize = when (normalizedTechniqueName) {
-            "Чтение по диагонали" -> TextResources.diagonalTexts.size
-            "Поиск ключевых слов" -> TextResources.keywordTexts.size
-            else -> TextResources.otherTexts[normalizedTechniqueName]?.size ?: 1
+            "Чтение по диагонали" -> TextResources.getDiagonalTexts().size
+            "Поиск ключевых слов" -> TextResources.getKeywordTexts().size
+            else -> TextResources.getOtherTexts()[normalizedTechniqueName]?.size ?: 1
         }
         selectedTextIndex = Random.nextInt(textListSize)
 
@@ -84,7 +84,7 @@ class ReadingTestFragment : Fragment() {
         container.addView(guideView)
 
         technique.startAnimation(textView, guideView, durationPerWord, selectedTextIndex) {
-            if (isAdded && !isDetached && !isRemoving) { // Проверка состояния фрагмента
+            if (isAdded && !isDetached && !isRemoving) {
                 container.removeView(guideView)
                 navigateToTest()
             }

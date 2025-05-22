@@ -15,6 +15,7 @@ import com.example.scorochenie.ui.DiagonalLineView
 import com.example.scorochenie.R
 import kotlin.math.abs
 import android.text.style.StyleSpan
+
 class DiagonalReadingTechnique : ReadingTechnique("DiagonalReadingTechnique", "Чтение по диагонали") {
     private var currentPosition = 0
     private var breakWordIndex = 0
@@ -45,7 +46,7 @@ class DiagonalReadingTechnique : ReadingTechnique("DiagonalReadingTechnique", "�
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        fullText = TextResources.diagonalTexts.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
+        fullText = TextResources.getDiagonalTexts().getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
         currentPosition = 0
         breakWordIndex = 0
         isAnimationActive = true
@@ -82,7 +83,7 @@ class DiagonalReadingTechnique : ReadingTechnique("DiagonalReadingTechnique", "�
             return
         }
 
-        val currentBreakWords = TextResources.diagonalTexts.getOrNull(selectedTextIndex)?.breakWords ?: emptyList()
+        val currentBreakWords = TextResources.getDiagonalTexts().getOrNull(selectedTextIndex)?.breakWords ?: emptyList()
         val breakWord = if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
         val breakPosition = if (breakWord.isNotEmpty()) {
             val index = fullText.indexOf(breakWord, currentPosition)

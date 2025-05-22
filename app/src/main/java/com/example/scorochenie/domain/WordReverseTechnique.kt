@@ -12,6 +12,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.animation.addListener
 import android.text.style.StyleSpan
+
 class WordReverseTechnique : ReadingTechnique("WordReverseTechnique", "Слова наоборот") {
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
@@ -44,7 +45,7 @@ class WordReverseTechnique : ReadingTechnique("WordReverseTechnique", "Слов�
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        val originalText = TextResources.otherTexts["Слова наоборот"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
+        val originalText = TextResources.getOtherTexts()["Слова наоборот"]?.getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
         fullText = reverseWords(originalText).replace("\n", " ")
         currentWordIndex = 0
         lastScrollY = 0

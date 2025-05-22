@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.scorochenie.data.TestResult
 import com.example.scorochenie.databinding.ItemRatingBinding
+import com.example.scorochenie.domain.Technique
 
 class RatingAdapter : RecyclerView.Adapter<RatingAdapter.RatingViewHolder>() {
 
@@ -28,16 +29,7 @@ class RatingAdapter : RecyclerView.Adapter<RatingAdapter.RatingViewHolder>() {
 
     class RatingViewHolder(private val binding: ItemRatingBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(result: TestResult) {
-            val techniqueDisplayName = when (result.techniqueName) {
-                "BlockReadingTechnique" -> "Чтение \"блоками\""
-                "DiagonalReadingTechnique" -> "Чтение по диагонали"
-                "KeywordSearchTechnique" -> "Поиск ключевых слов"
-                "PointerMethodTechnique" -> "Метод \"указки\""
-                "SentenceReverseTechnique" -> "Предложения наоборот"
-                "WordReverseTechnique" -> "Слова наоборот"
-                else -> result.techniqueName
-            }
-            binding.tvTechniqueName.text = techniqueDisplayName
+            binding.tvTechniqueName.text = Technique.getDisplayName(result.techniqueName)
             binding.tvSpeed.text = "Скорость: ${result.durationPerWord} слов/мин"
             binding.tvScore.text = "Результат: ${result.score} из ${result.totalQuestions}"
         }

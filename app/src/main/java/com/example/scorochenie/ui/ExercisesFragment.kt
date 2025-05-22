@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.scorochenie.R
 import android.widget.ImageView
+import com.example.scorochenie.domain.Technique
 
 class ExercisesFragment : Fragment() {
     override fun onCreateView(
@@ -29,17 +30,17 @@ class ExercisesFragment : Fragment() {
         recyclerView.addItemDecoration(dividerItemDecoration)
         // Список техник
         val techniques = listOf(
-            TechniqueItem("DiagonalReadingTechnique", "Чтение по диагонали"),
-            TechniqueItem("KeywordSearchTechnique", "Поиск ключевых слов"),
-            TechniqueItem("BlockReadingTechnique", "Чтение \"блоками\""),
-            TechniqueItem("SentenceReverseTechnique", "Предложения наоборот"),
-            TechniqueItem("WordReverseTechnique", "Слова наоборот"),
-            TechniqueItem("PointerMethodTechnique", "Метод \"указки\"")
+            Technique("DiagonalReadingTechnique", "Чтение по диагонали"),
+            Technique("KeywordSearchTechnique", "Поиск ключевых слов"),
+            Technique("BlockReadingTechnique", "Чтение \"блоками\""),
+            Technique("SentenceReverseTechnique", "Предложения наоборот"),
+            Technique("WordReverseTechnique", "Слова наоборот"),
+            Technique("PointerMethodTechnique", "Метод \"указки\"")
         )
 
         // Установка адаптера
-        recyclerView.adapter = TechniqueSelectionAdapter(techniques) { techniqueName ->
-            navigateToSpeedSelection(techniqueName)
+        recyclerView.adapter = TechniqueSelectionAdapter(techniques) { technique ->
+            navigateToSpeedSelection(technique.name)
         }
 
         return view
@@ -74,6 +75,3 @@ class ExercisesFragment : Fragment() {
             .commit()
     }
 }
-
-// Временная data class для хранения информации о технике
-data class TechniqueItem(val name: String, val displayName: String)

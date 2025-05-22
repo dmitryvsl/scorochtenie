@@ -39,7 +39,6 @@ class SpeedSelectionFragment : Fragment() {
         // Получаем techniqueName из аргументов
         val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
 
-        // Переводим techniqueName в читаемое название
         val techniqueDisplayName = when (techniqueName) {
             "BlockReadingTechnique" -> "Чтение \"блоками\""
             "DiagonalReadingTechnique" -> "Чтение по диагонали"
@@ -49,8 +48,6 @@ class SpeedSelectionFragment : Fragment() {
             "WordReverseTechnique" -> "Слова наоборот"
             else -> techniqueName
         }
-
-        // Устанавливаем заголовок с названием техники
         binding.tvTechniqueTitle.text = techniqueDisplayName
 
         // Обработчики кнопок скорости

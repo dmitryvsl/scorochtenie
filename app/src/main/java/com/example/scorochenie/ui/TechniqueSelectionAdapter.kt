@@ -5,10 +5,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.example.scorochenie.domain.Technique
 
 class TechniqueSelectionAdapter(
-    private val techniques: List<TechniqueItem>,
-    private val onItemClick: (String) -> Unit
+    private val techniques: List<Technique>,
+    private val onItemClick: (Technique) -> Unit
 ) : RecyclerView.Adapter<TechniqueSelectionAdapter.TechniqueViewHolder>() {
 
     class TechniqueViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -25,7 +26,7 @@ class TechniqueSelectionAdapter(
         val technique = techniques[position]
         holder.techniqueName.text = technique.displayName
         holder.itemView.setOnClickListener {
-            onItemClick(technique.name)
+            onItemClick(technique)
         }
     }
 

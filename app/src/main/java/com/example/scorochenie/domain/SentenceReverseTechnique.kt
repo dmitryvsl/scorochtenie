@@ -2,17 +2,17 @@ package com.example.scorochenie.domain
 
 import android.animation.ValueAnimator
 import android.graphics.Color
+import android.os.Handler
+import android.os.Looper
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.BackgroundColorSpan
-import android.text.style.StyleSpan
-import android.util.Log
 import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.animation.addListener
-
-class SentenceReverseTechnique : ReadingTechnique("Предложения наоборот") {
+import android.text.style.StyleSpan
+class SentenceReverseTechnique : ReadingTechnique("SentenceReverseTechnique", "Предложения наоборот") {
     private var currentSentenceIndex = 0
     private var currentWordIndexInSentence = 0
     private var selectedTextIndex = 0
@@ -23,6 +23,8 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
     private var sentenceStartIndices: List<Int> = emptyList()
     private var scrollView: ScrollView? = null
     private var lastScrollY: Int = 0
+    private val handler = Handler(Looper.getMainLooper())
+    private var isAnimationActive = false
 
     override val description: SpannableString
         get() {
@@ -49,26 +51,20 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         currentSentenceIndex = 0
         currentWordIndexInSentence = 0
         lastScrollY = 0
+        isAnimationActive = true
 
-        // Преобразуем WPM в миллисекунды на слово
-        val wordDurationMs = (60_000 / durationPerWord).coerceAtLeast(50L)
-        Log.d("SentenceReverse", "Starting animation with durationPerWord=$durationPerWord WPM, wordDurationMs=$wordDurationMs ms")
+        val safeDurationPerWord = if (durationPerWord <= 0) 400L else durationPerWord
+        val wordDurationMs = (60_000 / safeDurationPerWord).coerceAtLeast(50L)
 
         scrollView = textView.parent as? ScrollView
-        Log.d("SentenceReverse", "ScrollView initialized: $scrollView, parent=${textView.parent}, parentClass=${textView.parent?.javaClass?.simpleName}")
-        if (scrollView == null) {
-            Log.e("SentenceReverse", "TextView is not inside a ScrollView, scrolling will not work")
-        } else {
-            Log.d("SentenceReverse", "ScrollView height: ${scrollView?.height}, width: ${scrollView?.width}")
-        }
 
         textView.gravity = android.view.Gravity.TOP
         textView.isSingleLine = false
         textView.maxLines = Int.MAX_VALUE
-        textView.post {
-            Log.d("SentenceReverse", "Full text length: ${fullText.length}")
-            Log.d("SentenceReverse", "TextView height: ${textView.height}, width: ${textView.width}, lineCount: ${textView.lineCount}")
-            showText(textView, guideView, wordDurationMs, onAnimationEnd)
+        handler.post {
+            if (isAnimationActive) {
+                showText(textView, guideView, wordDurationMs, onAnimationEnd)
+            }
         }
     }
 
@@ -78,12 +74,13 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
+        if (!isAnimationActive) return
+
         if (currentPosition >= fullText.length) {
             guideView.visibility = View.INVISIBLE
-            Log.d("SentenceReverse", "Text ended, stopping animation")
             animator?.cancel()
             textView.text = fullText
-            onAnimationEnd()
+            if (isAnimationActive) onAnimationEnd()
             return
         }
 
@@ -94,16 +91,10 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         val currentSentence = sentences.getOrNull(currentSentenceIndex)
         currentWordIndexInSentence = if (currentSentence.isNullOrEmpty()) -1 else currentSentence.size - 1
 
-        Log.d("SentenceReverse", "Showing text: '$fullText'")
-        Log.d("SentenceReverse", "Sentences: ${sentences.map { it.joinToString(" ") }}")
-        Log.d("SentenceReverse", "Sentence start indices: $sentenceStartIndices")
-        Log.d("SentenceReverse", "Initial currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, currentSentence=${currentSentence?.joinToString(" ")}")
-        if (currentSentence != null && currentWordIndexInSentence >= 0) {
-            Log.d("SentenceReverse", "Starting with word: '${currentSentence[currentWordIndexInSentence]}' at position $currentWordIndexInSentence")
-        }
-
-        textView.post {
-            animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
+        handler.post {
+            if (isAnimationActive) {
+                animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
+            }
         }
     }
 
@@ -120,23 +111,19 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
                 .toList()
             if (words.isNotEmpty()) {
                 sentences.add(words)
-                Log.d("SentenceReverse", "Parsed sentence: ${words.joinToString(" ")} (word count: ${words.size})")
             }
         }
 
         if (sentences.isEmpty()) {
-            Log.w("SentenceReverse", "No sentences parsed from text: $text")
             val words = wordRegex.findAll(text)
                 .map { it.value }
                 .filter { it.isNotEmpty() }
                 .toList()
             if (words.isNotEmpty()) {
                 sentences.add(words)
-                Log.d("SentenceReverse", "Fallback parsed sentence: ${words.joinToString(" ")} (word count: ${words.size})")
             }
         }
 
-        Log.d("SentenceReverse", "Parsed sentences: ${sentences.map { it.joinToString(" ") }}")
         return sentences
     }
 
@@ -157,7 +144,6 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
                     wordIndex = text.indexOf(word, wordIndex + 1)
                 }
                 if (wordIndex == -1) {
-                    Log.e("SentenceReverse", "Word '$word' not found from index $currentIndex in text: $text")
                     return@forEach
                 }
                 currentIndex = wordIndex + word.length
@@ -169,7 +155,6 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
                 currentIndex++
             }
         }
-        Log.d("SentenceReverse", "Sentence start indices: $indices")
         return indices
     }
 
@@ -235,14 +220,13 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
-        Log.d("SentenceReverse", "animateNextWord: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence")
+        if (!isAnimationActive) return
 
         if (currentSentenceIndex >= sentences.size) {
-            Log.d("SentenceReverse", "No more sentences to display, ending animation")
             guideView.visibility = View.INVISIBLE
             animator?.cancel()
             textView.text = fullText
-            onAnimationEnd()
+            if (isAnimationActive) onAnimationEnd()
             return
         }
 
@@ -251,24 +235,23 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
             currentSentenceIndex++
             val nextSentence = sentences.getOrNull(currentSentenceIndex)
             currentWordIndexInSentence = if (nextSentence.isNullOrEmpty()) -1 else nextSentence.size - 1
-            Log.d("SentenceReverse", "Moving to next sentence: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, nextSentence=${nextSentence?.joinToString(" ")}")
-            if (nextSentence != null && currentWordIndexInSentence >= 0) {
-                Log.d("SentenceReverse", "Starting with word: '${nextSentence[currentWordIndexInSentence]}' at position $currentWordIndexInSentence")
+            handler.post {
+                if (isAnimationActive) animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
             }
-            textView.post { animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd) }
             return
         }
 
-        Log.d("SentenceReverse", "Starting sentence: ${currentSentence.joinToString(" ")} (word count: ${currentSentence.size})")
-        Log.d("SentenceReverse", "Current word: '${currentSentence[currentWordIndexInSentence]}' at position $currentWordIndexInSentence")
-
-        textView.post {
-            highlightWord(textView)
-            startWordAnimation(textView, guideView, wordDurationMs, onAnimationEnd)
+        handler.post {
+            if (isAnimationActive) {
+                highlightWord(textView)
+                startWordAnimation(textView, guideView, wordDurationMs, onAnimationEnd)
+            }
         }
     }
 
     private fun highlightWord(textView: TextView) {
+        if (!isAnimationActive) return
+
         val spannable = SpannableString(fullText)
         val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
         for (span in existingSpans) {
@@ -277,7 +260,6 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
 
         val currentSentence = sentences.getOrNull(currentSentenceIndex)
         if (currentSentence == null || currentSentence.isEmpty() || currentWordIndexInSentence < 0 || currentWordIndexInSentence >= currentSentence.size) {
-            Log.e("SentenceReverse", "Invalid sentence or word index: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, sentence=${currentSentence?.joinToString(" ")}")
             return
         }
 
@@ -299,12 +281,7 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
                     endIndex,
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
-                Log.d("SentenceReverse", "Highlighting word: '$word' at position $currentWordIndexInSentence, start=$wordStartIndex, end=$endIndex")
-            } else {
-                Log.e("SentenceReverse", "Invalid end index: $endIndex for word: '$word'")
             }
-        } else {
-            Log.e("SentenceReverse", "Invalid word start index: $wordStartIndex for word: '$word'")
         }
 
         textView.text = spannable
@@ -312,13 +289,8 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
 
     private fun findWordStartIndex(word: String, startIndex: Int, endIndex: Int, sentence: List<String>, wordPosition: Int): Int {
         if (startIndex < 0 || startIndex >= fullText.length || endIndex > fullText.length || startIndex >= endIndex) {
-            Log.e("SentenceReverse", "Invalid indices: startIndex=$startIndex, endIndex=$endIndex")
             return -1
         }
-
-        val sentenceText = fullText.substring(startIndex, endIndex)
-        Log.d("SentenceReverse", "Current sentence text: '$sentenceText'")
-        Log.d("SentenceReverse", "Current sentence: ${sentence.joinToString(" ")}")
 
         var currentIndex = startIndex
         var currentWordIdx = 0
@@ -345,7 +317,6 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
             }
         }
 
-        Log.e("SentenceReverse", "Word '$word' at position $wordPosition not found in sentence text: '$sentenceText'")
         return -1
     }
 
@@ -355,21 +326,25 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         wordDurationMs: Long,
         onAnimationEnd: () -> Unit
     ) {
+        if (!isAnimationActive) return
+
         guideView.visibility = View.INVISIBLE
         animator?.cancel()
 
         val layout = textView.layout
         if (layout == null) {
-            Log.e("SentenceReverse", "TextView layout is null")
-            textView.postDelayed({ animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd) }, 200)
+            handler.postDelayed({
+                if (isAnimationActive) animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
+            }, 200)
             return
         }
 
         val currentSentence = sentences.getOrNull(currentSentenceIndex)
         if (currentSentence == null || currentSentence.isEmpty() || currentWordIndexInSentence < 0 || currentWordIndexInSentence >= currentSentence.size) {
-            Log.e("SentenceReverse", "Invalid sentence or word index: currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence, sentence=${currentSentence?.joinToString(" ")}")
             currentWordIndexInSentence--
-            textView.postDelayed({ animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd) }, 200)
+            handler.postDelayed({
+                if (isAnimationActive) animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
+            }, 200)
             return
         }
 
@@ -383,15 +358,17 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         val wordStartIndex = findWordStartIndex(word, sentenceStartIndex, sentenceEndIndex, currentSentence, currentWordIndexInSentence)
 
         if (wordStartIndex < 0 || wordStartIndex >= fullText.length) {
-            Log.e("SentenceReverse", "Invalid wordStartIndex: $wordStartIndex for word: '$word'")
-            textView.postDelayed({ animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd) }, 200)
+            handler.postDelayed({
+                if (isAnimationActive) animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
+            }, 200)
             return
         }
 
         val wordEndIndex = wordStartIndex + word.length
         if (wordEndIndex > fullText.length) {
-            Log.e("SentenceReverse", "Invalid wordEndIndex: $wordEndIndex for word: '$word'")
-            textView.postDelayed({ animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd) }, 200)
+            handler.postDelayed({
+                if (isAnimationActive) animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
+            }, 200)
             return
         }
 
@@ -404,30 +381,24 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
         }
         val lineTop = layout.getLineTop(startLine).toFloat()
         val lineBottom = layout.getLineBottom(startLine).toFloat()
-        val lineY = (lineTop + lineBottom) / 2 // Середина строки для guideView
+        val lineY = (lineTop + lineBottom) / 2
 
-        // Прокрутка ScrollView
         scrollView?.let { sv ->
-            sv.post {
+            handler.post {
+                if (!isAnimationActive) return@post
                 val scrollViewHeight = sv.height
                 val currentScrollY = sv.scrollY
                 val lineTopPosition = layout.getLineTop(startLine)
                 val lineBottomPosition = layout.getLineBottom(startLine)
 
-                // Определяем видимую область (верхняя треть экрана)
                 val visibleTop = currentScrollY
                 val visibleBottom = currentScrollY + scrollViewHeight * 2 / 3
 
-                // Прокручиваем, если строка не полностью видна
                 if (lineTopPosition < visibleTop || lineBottomPosition > visibleBottom) {
-                    // Цель: поставить строку в верхнюю треть экрана
                     val targetScrollY = (lineTopPosition - scrollViewHeight / 3).coerceAtLeast(0).toInt()
                     if (targetScrollY != lastScrollY) {
-                        Log.d("SentenceReverse", "Attempting scroll for line $startLine, word='$word'")
-                        Log.d("SentenceReverse", "Scroll parameters: line=$startLine, word='$word', lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, scrollViewHeight=$scrollViewHeight, currentScrollY=$currentScrollY, targetScrollY=$targetScrollY")
-                        // Плавная прокрутка
                         ValueAnimator.ofInt(currentScrollY, targetScrollY).apply {
-                            duration = wordDurationMs / 2 // Прокрутка быстрее анимации слова
+                            duration = wordDurationMs / 2
                             addUpdateListener { animation ->
                                 val value = animation.animatedValue as Int
                                 sv.scrollTo(0, value)
@@ -435,48 +406,41 @@ class SentenceReverseTechnique : ReadingTechnique("Предложения нао
                             addListener(
                                 onEnd = {
                                     lastScrollY = targetScrollY
-                                    Log.d("SentenceReverse", "Scrolled to line $startLine, targetScrollY=$targetScrollY, currentScrollY=${sv.scrollY}")
                                 }
                             )
                             start()
                         }
-                    } else {
-                        Log.d("SentenceReverse", "No scroll needed, already at target: line=$startLine, word='$word', targetScrollY=$targetScrollY")
                     }
-                } else {
-                    Log.d("SentenceReverse", "No scroll needed, line $startLine is visible, lineTop=$lineTopPosition, lineBottom=$lineBottomPosition, visibleTop=$visibleTop, visibleBottom=$visibleBottom")
                 }
-
-                sv.postDelayed({
-                    Log.d("SentenceReverse", "After scroll check, currentScrollY=${sv.scrollY}, textViewHeight=${textView.height}, scrollViewHeight=$scrollViewHeight")
-                }, 100)
             }
-        } ?: Log.e("SentenceReverse", "ScrollView is null, cannot scroll to line $startLine for word '$word'")
-
-        Log.d("SentenceReverse", "Animating word: '$word' at position $currentWordIndexInSentence, startX=$startX, endX=$endX, lineY=$lineY, startLine=$startLine, endLine=$endLine, duration=$wordDurationMs ms")
+        }
 
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = wordDurationMs
             addUpdateListener { animation ->
+                if (!isAnimationActive) return@addUpdateListener
                 val fraction = animation.animatedValue as Float
                 val currentX = startX + (endX - startX) * fraction
                 guideView.translationX = currentX - (guideView.width / 2) + textView.left
                 guideView.translationY = lineY + textView.top.toFloat() - (scrollView?.scrollY?.toFloat() ?: 0f)
-                Log.d("SentenceReverse", "guideView position: translationX=${guideView.translationX}, translationY=${guideView.translationY}, scrollY=${scrollView?.scrollY}")
             }
             addListener(
                 onEnd = {
-                    currentWordIndexInSentence--
-                    Log.d("SentenceReverse", "Word animation ended, currentSentenceIndex=$currentSentenceIndex, currentWordIndexInSentence=$currentWordIndexInSentence")
-                    animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
+                    if (isAnimationActive) {
+                        currentWordIndexInSentence--
+                        animateNextWord(textView, guideView, wordDurationMs, onAnimationEnd)
+                    }
                 }
             )
             start()
         }
     }
+
     override fun cancelAnimation() {
+        isAnimationActive = false
         animator?.cancel()
-        Log.d("SentenceReverse", "Animation cancelled")
+        handler.removeCallbacksAndMessages(null)
     }
+
     data class WordChunk(val word: String, val punctuation: MutableList<String>)
 }

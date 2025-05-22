@@ -1,24 +1,20 @@
 package com.example.scorochenie.ui
 
 import android.os.Bundle
-import android.util.Log
+import android.text.SpannableString
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.fragment.app.Fragment
-import com.example.scorochenie.databinding.FragmentReadingTestBinding
-import kotlin.random.Random
 import android.widget.TextView
-import com.example.scorochenie.domain.BlockReadingTechnique
-import com.example.scorochenie.domain.DiagonalReadingTechnique
-import com.example.scorochenie.domain.KeywordSearchTechnique
-import com.example.scorochenie.domain.PointerMethodTechnique
+import androidx.fragment.app.Fragment
 import com.example.scorochenie.R
+import com.example.scorochenie.databinding.FragmentReadingTestBinding
+import com.example.scorochenie.domain.DiagonalReadingTechnique
 import com.example.scorochenie.domain.ReadingTechnique
-import com.example.scorochenie.domain.SentenceReverseTechnique
 import com.example.scorochenie.domain.TextResources
-import com.example.scorochenie.domain.WordReverseTechnique
+import com.example.scorochenie.domain.Technique
+import kotlin.random.Random
 
 class ReadingTestFragment : Fragment() {
 
@@ -29,7 +25,7 @@ class ReadingTestFragment : Fragment() {
             val fragment = ReadingTestFragment()
             val args = Bundle()
             args.putString(ARG_TECHNIQUE_NAME, techniqueName)
-            args.putLong(ARG_DURATION_PER_WORD, durationPerWord)
+            args.putLong(ARG_DURATION_PER_WORD, durationPerWord) // Исправлено
             fragment.arguments = args
             return fragment
         }
@@ -56,41 +52,9 @@ class ReadingTestFragment : Fragment() {
         techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
         durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
 
-        // Нормализация имени техники
-        val normalizedTechniqueName = when (techniqueName) {
-            "DiagonalReadingTechnique" -> "Чтение по диагонали"
-            "KeywordSearchTechnique" -> "Поиск ключевых слов"
-            "BlockReadingTechnique" -> "Чтение блоками"
-            "SentenceReverseTechnique" -> "Предложения наоборот"
-            "WordReverseTechnique" -> "Слова наоборот"
-            "PointerMethodTechnique" -> "Метод указки"
-            else -> "Неизвестная техника"
-        }
+        technique = Technique.createTechnique(techniqueName)
+        val normalizedTechniqueName = technique.displayName
 
-        // Инициализация техники
-        technique = when (techniqueName) {
-            "BlockReadingTechnique" -> BlockReadingTechnique()
-            "DiagonalReadingTechnique" -> DiagonalReadingTechnique()
-            "KeywordSearchTechnique" -> KeywordSearchTechnique()
-            "PointerMethodTechnique" -> PointerMethodTechnique()
-            "SentenceReverseTechnique" -> SentenceReverseTechnique()
-            "WordReverseTechnique" -> WordReverseTechnique()
-            else -> object : ReadingTechnique(normalizedTechniqueName) {
-                override fun startAnimation(
-                    textView: TextView,
-                    guideView: View,
-                    durationPerWord: Long,
-                    selectedTextIndex: Int,
-                    onAnimationEnd: () -> Unit
-                ) {
-                    textView.text = "Анимация недоступна"
-                    guideView.visibility = View.INVISIBLE
-                    onAnimationEnd()
-                }
-            }
-        }
-
-        // Выбираем размер списка текстов в зависимости от техники
         val textListSize = when (normalizedTechniqueName) {
             "Чтение по диагонали" -> TextResources.diagonalTexts.size
             "Поиск ключевых слов" -> TextResources.keywordTexts.size
@@ -98,7 +62,7 @@ class ReadingTestFragment : Fragment() {
         }
         selectedTextIndex = Random.nextInt(textListSize)
 
-        if (normalizedTechniqueName == "Чтение по диагонали") {
+        if (technique is DiagonalReadingTechnique) {
             binding.scrollContainer.visibility = View.GONE
             binding.diagonalContainer.visibility = View.VISIBLE
             startReadingAnimation(binding.animationTextDiagonal)
@@ -120,18 +84,21 @@ class ReadingTestFragment : Fragment() {
         container.addView(guideView)
 
         technique.startAnimation(textView, guideView, durationPerWord, selectedTextIndex) {
-            container.removeView(guideView)
-            navigateToTest()
+            if (isAdded && !isDetached && !isRemoving) { // Проверка состояния фрагмента
+                container.removeView(guideView)
+                navigateToTest()
+            }
         }
     }
 
     private fun navigateToTest() {
-        val fragment = TestFragment.newInstance(selectedTextIndex, techniqueName, durationPerWord)
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .addToBackStack(null)
-            .commit()
-
+        if (isAdded && !isDetached && !isRemoving) {
+            val fragment = TestFragment.newInstance(selectedTextIndex, techniqueName, durationPerWord)
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit()
+        }
     }
 
     override fun onDestroyView() {

@@ -1,0 +1,954 @@
+package com.example.scorochenie.ui
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.scorochenie.R
+import android.widget.ImageView
+import com.example.scorochenie.domain.Technique
+
+class ExercisesFragment : Fragment() {
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_exercises, container, false)
+
+        // Настройка RecyclerView
+        val recyclerView = view.findViewById<RecyclerView>(R.id.exercises_list)
+        recyclerView.layoutManager = LinearLayoutManager(context)
+        // Добавляем разделитель
+        val dividerItemDecoration = DividerItemDecoration(
+            recyclerView.context,
+            LinearLayoutManager.VERTICAL
+        )
+        recyclerView.addItemDecoration(dividerItemDecoration)
+
+        // Получаем список техник из Technique
+        val techniques = Technique.getAllTechniques()
+
+        // Установка адаптера
+        recyclerView.adapter = TechniqueSelectionAdapter(techniques) { technique ->
+            navigateToSpeedSelection(technique.name)
+        }
+
+        return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Настройка обработчика клика для иконки справки
+        val helpIcon = view.findViewById<ImageView>(R.id.exercises_help_icon)
+        helpIcon.setOnClickListener {
+            showHelpDialog("Здесь вы найдете список упражнений для тренировки скорочтения. Погрузитесь в процесс и развивайте свои навыки чтения:\n" +
+                    "1. Выберите технику: Определите, какую технику скорочтения вы хотите практиковать.\n" +
+                    "2. Настройте скорость: Установите комфортный темп чтения для эффективной тренировки.\n" +
+                    "3. Прочитайте текст: Внимательно ознакомьтесь с предложенным текстом.\n" +
+                    "4. Ответьте на вопросы: Проверьте понимание материала, ответив на вопросы по тексту.")
+        }
+    }
+
+    private fun showHelpDialog(message: String) {
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Справка")
+            .setMessage(message)
+            .setPositiveButton("ОК", null)
+            .show()
+    }
+
+    private fun navigateToSpeedSelection(techniqueName: String) {
+        val fragment = SpeedSelectionFragment.newInstance(techniqueName)
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
+    }
+}package com.example.scorochenie.ui
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.scorochenie.R
+import com.example.scorochenie.domain.Technique
+import android.app.AlertDialog
+import android.util.Log
+
+class MaterialsFragment : Fragment() {
+
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var techniqueAdapter: TechniqueAdapter
+
+    private val techniqueNames = listOf(
+        "DiagonalReadingTechnique",
+        "KeywordSearchTechnique",
+        "BlockReadingTechnique",
+        "SentenceReverseTechnique",
+        "WordReverseTechnique",
+        "PointerMethodTechnique"
+    )
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_materials, container, false)
+
+        recyclerView = view.findViewById(R.id.materials_list)
+        recyclerView.layoutManager = LinearLayoutManager(context)
+
+        val dividerItemDecoration = DividerItemDecoration(
+            recyclerView.context,
+            LinearLayoutManager.VERTICAL
+        )
+        recyclerView.addItemDecoration(dividerItemDecoration)
+
+        val techniques = techniqueNames.map { name ->
+            Technique.createTechnique(name).also {
+                Log.d("MaterialsFragment", "Technique created: name=${it.name}, displayName=${it.displayName}")
+            }
+        }
+
+        techniqueAdapter = TechniqueAdapter(techniques) { technique ->
+            onTechniqueClicked(technique)
+        }
+        recyclerView.adapter = techniqueAdapter
+
+        return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        val helpIcon = view.findViewById<ImageView>(R.id.materials_help_icon)
+        helpIcon.setOnClickListener {
+            showHelpDialog(
+                "Этот раздел создан, чтобы вы могли глубже изучить техники скорочтения и выбрать те, которые вам подходят! Ознакомьтесь с материалами, чтобы освоить новые навыки:\n" +
+                        "1. Просмотрите, как работают техники: Узнайте, как каждая техника помогает читать быстрее и лучше понимать текст.\n" +
+                        "2. Прочитайте описания техник: Изучите подробные инструкции и примеры, чтобы применять техники на практике.\n" +
+                        "3. Начните изучение: Погрузитесь в материалы и тренируйтесь, чтобы сделать чтение более эффективным и увлекательным!"
+            )
+        }
+    }
+
+    private fun showHelpDialog(message: String) {
+        context?.let {
+            AlertDialog.Builder(it)
+                .setTitle("Справка")
+                .setMessage(message)
+                .setPositiveButton("ОК", null)
+                .show()
+        }
+    }
+
+    private fun onTechniqueClicked(technique: Technique) {
+        Log.d("MaterialsFragment", "Clicked technique: ${technique.name}, displayName: ${technique.displayName}")
+        val detailFragment = TechniqueDetailFragment.newInstance(technique.name)
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, detailFragment)
+            .addToBackStack(null)
+            .commit()
+    }
+}package com.example.scorochenie.ui
+
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import com.example.scorochenie.domain.TestResult
+import com.example.scorochenie.databinding.ItemRatingBinding
+import com.example.scorochenie.domain.Technique
+
+class RatingAdapter : RecyclerView.Adapter<RatingAdapter.RatingViewHolder>() {
+
+    private var results: List<TestResult> = emptyList()
+
+    fun setResults(results: List<TestResult>) {
+        this.results = results
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RatingViewHolder {
+        val binding = ItemRatingBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return RatingViewHolder(binding)
+    }
+
+    override fun onBindViewHolder(holder: RatingViewHolder, position: Int) {
+        holder.bind(results[position])
+    }
+
+    override fun getItemCount(): Int = results.size
+
+    class RatingViewHolder(private val binding: ItemRatingBinding) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(result: TestResult) {
+            binding.tvTechniqueName.text = Technique.getDisplayName(result.techniqueName)
+            binding.tvSpeed.text = "Скорость: ${result.durationPerWord} слов/мин"
+            binding.tvScore.text = "Результат: ${result.score} из ${result.totalQuestions}"
+        }
+    }
+}package com.example.scorochenie.ui
+
+import android.content.Context
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.scorochenie.domain.TestResult
+import com.example.scorochenie.databinding.FragmentRatingBinding
+import org.json.JSONObject
+
+class RatingFragment : Fragment() {
+
+    private var _binding: FragmentRatingBinding? = null
+    private val binding get() = _binding!!
+    private lateinit var adapter: RatingAdapter
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentRatingBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        adapter = RatingAdapter()
+        binding.ratingRecyclerView.adapter = adapter
+        binding.ratingRecyclerView.layoutManager = LinearLayoutManager(context)
+
+        // Добавляем разделитель
+        val dividerItemDecoration = DividerItemDecoration(
+            binding.ratingRecyclerView.context,
+            LinearLayoutManager.VERTICAL
+        )
+        binding.ratingRecyclerView.addItemDecoration(dividerItemDecoration)
+
+        loadBestResults()
+        binding.ratingHelpIcon.setOnClickListener {
+            showHelpDialog("Здесь вы можете увидеть свои достижения в тренировке скорочтения! Рейтинг отражает ваш лучший результат по каждой технике:\n" +
+                    "1. Просмотрите лучшие результаты: Узнайте, сколько на вопросов вы правильно ответили для каждой техники.\n" +
+                    "2. Оцените скорость чтения: Посмотрите, с какой скоростью был достигнут ваш лучший результат.\n" +
+                    "3. Стремитесь к прогрессу: Практикуйтесь, чтобы улучшить свои показатели!")
+        }
+
+    }
+    private fun showHelpDialog(message: String) {
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Справка")
+            .setMessage(message)
+            .setPositiveButton("ОК", null)
+            .show()
+    }
+
+    private fun loadBestResults() {
+        val sharedPreferences = requireContext().getSharedPreferences("TestResults", Context.MODE_PRIVATE)
+        val allEntries = sharedPreferences.all
+
+        // Собираем все результаты
+        val results = mutableListOf<TestResult>()
+        for (entry in allEntries) {
+            val jsonString = entry.value as? String ?: continue
+            try {
+                val json = JSONObject(jsonString)
+                val result = TestResult(
+                    techniqueName = json.getString("techniqueName"),
+                    durationPerWord = json.getLong("durationPerWord"),
+                    score = json.getInt("score"),
+                    totalQuestions = json.getInt("totalQuestions"),
+                    timestamp = json.optLong("timestamp", 0L) // Используем optLong для обратной совместимости
+                )
+                results.add(result)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        // Группируем по методике, выбираем лучший результат по score, сортируем по последнему timestamp
+        val bestResults = results.groupBy { it.techniqueName }
+            .mapValues { entry ->
+                entry.value.maxByOrNull { it.score }!! // Выбираем результат с максимальным score
+            }
+            .values
+            .sortedByDescending { techniqueResults ->
+                // Находим максимальный timestamp для этой методики
+                results.filter { it.techniqueName == techniqueResults.techniqueName }
+                    .maxOfOrNull { it.timestamp } ?: 0L
+            }
+
+        adapter.setResults(bestResults)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}package com.example.scorochenie.ui
+
+import android.os.Bundle
+import android.text.SpannableString
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+import com.example.scorochenie.R
+import com.example.scorochenie.databinding.FragmentReadingTestBinding
+import com.example.scorochenie.domain.DiagonalReadingTechnique
+import com.example.scorochenie.domain.TextResources
+import com.example.scorochenie.domain.Technique
+import kotlin.random.Random
+
+class ReadingTestFragment : Fragment() {
+
+    companion object {
+        private const val ARG_TECHNIQUE_NAME = "technique_name"
+        private const val ARG_DURATION_PER_WORD = "duration_per_word"
+        fun newInstance(techniqueName: String, durationPerWord: Long): ReadingTestFragment {
+            val fragment = ReadingTestFragment()
+            val args = Bundle()
+            args.putString(ARG_TECHNIQUE_NAME, techniqueName)
+            args.putLong(ARG_DURATION_PER_WORD, durationPerWord)
+            fragment.arguments = args
+            return fragment
+        }
+    }
+
+    private var _binding: FragmentReadingTestBinding? = null
+    private val binding get() = _binding!!
+    private lateinit var technique: Technique
+    private var durationPerWord: Long = 400L
+    private var techniqueName: String = ""
+    private var selectedTextIndex: Int = 0
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentReadingTestBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
+        durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
+
+        technique = Technique.createTechnique(techniqueName)
+        val normalizedTechniqueName = technique.displayName
+
+        val textListSize = when (normalizedTechniqueName) {
+            "Чтение по диагонали" -> TextResources.getDiagonalTexts().size
+            "Поиск ключевых слов" -> TextResources.getKeywordTexts().size
+            else -> TextResources.getOtherTexts()[normalizedTechniqueName]?.size ?: 1
+        }
+        selectedTextIndex = Random.nextInt(textListSize)
+
+        if (technique is DiagonalReadingTechnique) {
+            binding.scrollContainer.visibility = View.GONE
+            binding.diagonalContainer.visibility = View.VISIBLE
+            startReadingAnimation(binding.animationTextDiagonal)
+        } else {
+            binding.scrollContainer.visibility = View.VISIBLE
+            binding.diagonalContainer.visibility = View.GONE
+            startReadingAnimation(binding.animationTextScroll)
+        }
+    }
+
+    private fun startReadingAnimation(textView: TextView) {
+        val guideView = View(requireContext()).apply {
+            visibility = View.INVISIBLE
+            layoutParams = FrameLayout.LayoutParams(20, 2)
+            setBackgroundColor(android.graphics.Color.BLACK)
+        }
+
+        val container = if (technique is DiagonalReadingTechnique) binding.diagonalContainer else binding.scrollContainer
+        container.addView(guideView)
+
+        technique.startAnimation(textView, guideView, durationPerWord, selectedTextIndex) {
+            if (isAdded && !isDetached && !isRemoving) {
+                container.removeView(guideView)
+                navigateToTest()
+            }
+        }
+    }
+
+    private fun navigateToTest() {
+        if (isAdded && !isDetached && !isRemoving) {
+            val fragment = TestFragment.newInstance(selectedTextIndex, techniqueName, durationPerWord)
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit()
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        technique.cancelAnimation()
+        _binding = null
+    }
+}package com.example.scorochenie.ui
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import com.example.scorochenie.R
+import com.example.scorochenie.databinding.FragmentSpeedSelectionBinding
+
+class SpeedSelectionFragment : Fragment() {
+
+    companion object {
+        private const val ARG_TECHNIQUE_NAME = "technique_name"
+
+        fun newInstance(techniqueName: String): SpeedSelectionFragment {
+            return SpeedSelectionFragment().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_TECHNIQUE_NAME, techniqueName)
+                }
+            }
+        }
+    }
+
+    private var _binding: FragmentSpeedSelectionBinding? = null
+    private val binding get() = _binding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentSpeedSelectionBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // Получаем techniqueName из аргументов
+        val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
+
+        val techniqueDisplayName = when (techniqueName) {
+            "BlockReadingTechnique" -> "Чтение \"блоками\""
+            "DiagonalReadingTechnique" -> "Чтение по диагонали"
+            "KeywordSearchTechnique" -> "Поиск ключевых слов"
+            "PointerMethodTechnique" -> "Метод \"указки\""
+            "SentenceReverseTechnique" -> "Предложения наоборот"
+            "WordReverseTechnique" -> "Слова наоборот"
+            else -> techniqueName
+        }
+        binding.tvTechniqueTitle.text = techniqueDisplayName
+
+        // Обработчики кнопок скорости
+        binding.btnSlowSpeed.setOnClickListener {
+            navigateToReadingTest(techniqueName, 200L)
+        }
+        binding.btnMediumSpeed.setOnClickListener {
+            navigateToReadingTest(techniqueName, 400L)
+        }
+        binding.btnFastSpeed.setOnClickListener {
+            navigateToReadingTest(techniqueName, 600L)
+        }
+    }
+
+    private fun navigateToReadingTest(techniqueName: String, durationPerWord: Long) {
+        val fragment = ReadingTestFragment.newInstance(techniqueName, durationPerWord)
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}package com.example.scorochenie.ui
+
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import com.example.scorochenie.domain.Technique
+
+class TechniqueAdapter(
+    private val techniques: List<Technique>,
+    private val onItemClick: (Technique) -> Unit // Callback для обработки кликов
+) : RecyclerView.Adapter<TechniqueAdapter.TechniqueViewHolder>() {
+
+    class TechniqueViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val techniqueName: TextView = itemView.findViewById(android.R.id.text1)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TechniqueViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(android.R.layout.simple_list_item_1, parent, false)
+        return TechniqueViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: TechniqueViewHolder, position: Int) {
+        val technique = techniques[position]
+        holder.techniqueName.text = technique.displayName
+        holder.itemView.setOnClickListener {
+            onItemClick(technique)
+        }
+    }
+
+    override fun getItemCount(): Int = techniques.size
+}
+package com.example.scorochenie.ui
+
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+import com.example.scorochenie.R
+import com.example.scorochenie.domain.TextResources
+import com.example.scorochenie.domain.Technique
+import kotlin.random.Random
+
+class TechniqueDetailFragment : Fragment() {
+
+    companion object {
+        private const val ARG_TECHNIQUE_NAME = "technique_name"
+        fun newInstance(techniqueName: String): TechniqueDetailFragment {
+            val fragment = TechniqueDetailFragment()
+            val args = Bundle()
+            args.putString(ARG_TECHNIQUE_NAME, techniqueName)
+            fragment.arguments = args
+            return fragment
+        }
+    }
+
+    private lateinit var technique: Technique
+    private lateinit var guideView: View
+    private var animationTextView: TextView? = null
+    private var scrollView: ScrollView? = null
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_technique_detail, container, false)
+        val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
+
+        // Используем Technique.createTechnique для создания техники
+        technique = Technique.createTechnique(techniqueName)
+
+        val titleTextView = view.findViewById<TextView>(R.id.technique_title)
+        val descriptionTextView = view.findViewById<TextView>(R.id.technique_description)
+        val scrollContainer = view.findViewById<FrameLayout>(R.id.scroll_container)
+        val diagonalContainer = view.findViewById<FrameLayout>(R.id.diagonal_container)
+        val startButton = view.findViewById<Button>(R.id.start_button)
+        val backButton = view.findViewById<Button>(R.id.back_button)
+
+        titleTextView.text = technique.displayName
+        descriptionTextView.text = technique.description
+
+        guideView = View(requireContext()).apply {
+            visibility = View.INVISIBLE
+            layoutParams = FrameLayout.LayoutParams(20, 2).apply {
+                setMargins(0, 0, 0, 0)
+            }
+            setBackgroundColor(android.graphics.Color.BLACK)
+        }
+
+        // Проверяем, является ли техника DiagonalReadingTechnique
+        val isDiagonalTechnique = technique.displayName == "Чтение по диагонали"
+        diagonalContainer.visibility = if (isDiagonalTechnique) View.VISIBLE else View.GONE
+        scrollContainer.visibility = if (isDiagonalTechnique) View.GONE else View.VISIBLE
+        animationTextView = view.findViewById(if (isDiagonalTechnique) R.id.animation_text_diagonal else R.id.animation_text_scroll)
+        scrollView = if (isDiagonalTechnique) null else view.findViewById(R.id.scrollView)
+
+        // Проверяем, поддерживает ли техника анимацию
+        val isAnimationSupported = technique.description.toString() != "Описание для этой техники недоступно"
+        if (isAnimationSupported) {
+            animationTextView?.visibility = View.GONE
+            startButton.visibility = View.VISIBLE
+            startButton.setOnClickListener {
+                descriptionTextView.visibility = View.GONE
+                startButton.visibility = View.GONE
+                animationTextView?.visibility = View.VISIBLE
+                backButton.visibility = View.VISIBLE
+
+                val diagonalLineView = diagonalContainer.findViewById<View>(R.id.diagonal_line_view)
+                if (isDiagonalTechnique && diagonalLineView != null) {
+                    diagonalLineView.visibility = View.VISIBLE
+                    Log.d("TechniqueDetail", "DiagonalLineView set to VISIBLE")
+                } else {
+                    diagonalLineView?.visibility = View.GONE
+                }
+                val activeContainer = if (isDiagonalTechnique) diagonalContainer else scrollContainer
+                if (guideView.parent == null) {
+                    activeContainer.addView(guideView)
+                }
+
+                val defaultDurationPerWord = 200L
+                val textListSize = when (technique.displayName) {
+                    "Чтение по диагонали" -> TextResources.getDiagonalTexts().size
+                    "Поиск ключевых слов" -> TextResources.getKeywordTexts().size
+                    else -> TextResources.getOtherTexts()[technique.displayName]?.size ?: 1
+                }
+                val selectedTextIndex = Random.nextInt(textListSize)
+
+
+                animationTextView?.let { textView ->
+                    technique.startAnimation(textView, guideView, defaultDurationPerWord, selectedTextIndex) {
+                        val parent = guideView.parent as? ViewGroup
+                        parent?.removeView(guideView)
+                        animationTextView?.visibility = View.VISIBLE
+                        backButton.visibility = View.VISIBLE
+                        guideView.visibility = View.INVISIBLE
+                    }
+                }
+            }
+        } else {
+            animationTextView?.text = "Анимация для этой техники в разработке."
+            animationTextView?.visibility = View.VISIBLE
+            startButton.visibility = View.GONE
+            val diagonalLineView = diagonalContainer.findViewById<View>(R.id.diagonal_line_view)
+            diagonalLineView?.visibility = View.GONE
+            guideView.visibility = View.INVISIBLE
+        }
+
+        backButton.setOnClickListener {
+            parentFragmentManager.popBackStack()
+        }
+
+        return view
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        val parent = guideView.parent as? ViewGroup
+        parent?.removeView(guideView)
+        guideView.visibility = View.INVISIBLE
+        animationTextView = null
+        scrollView = null
+    }
+}package com.example.scorochenie.ui
+
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import com.example.scorochenie.domain.Technique
+
+class TechniqueSelectionAdapter(
+    private val techniques: List<Technique>,
+    private val onItemClick: (Technique) -> Unit
+) : RecyclerView.Adapter<TechniqueSelectionAdapter.TechniqueViewHolder>() {
+
+    class TechniqueViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val techniqueName: TextView = itemView.findViewById(android.R.id.text1)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TechniqueViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(android.R.layout.simple_list_item_1, parent, false)
+        return TechniqueViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: TechniqueViewHolder, position: Int) {
+        val technique = techniques[position]
+        holder.techniqueName.text = technique.displayName
+        holder.itemView.setOnClickListener {
+            onItemClick(technique)
+        }
+    }
+
+    override fun getItemCount(): Int = techniques.size
+}package com.example.scorochenie.ui
+
+import android.content.Context
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.RadioButton
+import android.widget.Toast
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
+import com.example.scorochenie.domain.TextResources
+import com.example.scorochenie.databinding.FragmentTestBinding
+import org.json.JSONObject
+
+class TestFragment : Fragment() {
+
+    companion object {
+        private const val ARG_TEXT_INDEX = "textIndex"
+        private const val ARG_TECHNIQUE_NAME = "techniqueName"
+        private const val ARG_DURATION_PER_WORD = "durationPerWord"
+
+        fun newInstance(textIndex: Int, techniqueName: String, durationPerWord: Long): TestFragment {
+            return TestFragment().apply {
+                arguments = Bundle().apply {
+                    putInt(ARG_TEXT_INDEX, textIndex)
+                    putString(ARG_TECHNIQUE_NAME, techniqueName)
+                    putLong(ARG_DURATION_PER_WORD, durationPerWord)
+                }
+            }
+        }
+    }
+
+    private var _binding: FragmentTestBinding? = null
+    private val binding get() = _binding!!
+    private var score = 0
+    private var currentTextIndex = 0
+    private var techniqueName: String = ""
+    private var durationPerWord: Long = 400L
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentTestBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        currentTextIndex = arguments?.getInt(ARG_TEXT_INDEX, 0) ?: 0
+        techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
+        durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
+
+        Log.d("TestFragment", "onViewCreated: techniqueName='$techniqueName', currentTextIndex=$currentTextIndex, durationPerWord=$durationPerWord")
+
+        displayQuestion(0)
+
+        binding.btnSubmit.setOnClickListener {
+            checkAnswer()
+        }
+    }
+
+    private fun displayQuestion(index: Int) {
+        val normalizedTechniqueName = when (techniqueName) {
+            "DiagonalReadingTechnique" -> "Чтение по диагонали"
+            "KeywordSearchTechnique" -> "Поиск ключевых слов"
+            "BlockReadingTechnique" -> "Чтение блоками"
+            "SentenceReverseTechnique" -> "Предложения наоборот"
+            "WordReverseTechnique" -> "Слова наоборот"
+            "PointerMethodTechnique" -> "Метод указки"
+            else -> techniqueName
+        }
+
+        Log.d("TestFragment", "displayQuestion: index=$index, normalizedTechniqueName='$normalizedTechniqueName'")
+
+        val questions = when (normalizedTechniqueName) {
+            "Чтение по диагонали" -> TextResources.getDiagonalTexts().getOrNull(currentTextIndex)?.questionsAndAnswers
+            "Поиск ключевых слов" -> TextResources.getKeywordTexts().getOrNull(currentTextIndex)?.questionsAndAnswers
+            else -> {
+                Log.d("TestFragment", "Attempting to access otherTexts with key: '$normalizedTechniqueName'")
+                Log.d("TestFragment", "Available keys in otherTexts: ${TextResources.getOtherTexts().keys}")
+                TextResources.getOtherTexts()[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers
+            }
+        }
+
+        Log.d("TestFragment", "Questions: size=${questions?.size ?: 0}, questions=$questions")
+
+        if (questions.isNullOrEmpty()) {
+            Log.e("TestFragment", "No questions found for technique='$normalizedTechniqueName', textIndex=$currentTextIndex")
+            binding.tvQuestionHeader.visibility = View.GONE
+            binding.questionText.text = "Ошибка: вопросы для этой техники недоступны."
+            binding.radioGroup.visibility = View.GONE
+            binding.btnSubmit.visibility = View.GONE
+            return
+        }
+
+        if (index < questions.size) {
+            val questionPair = questions[index]
+            binding.questionText.text = questionPair.first
+            binding.questionText.tag = Pair(index, questionPair.second[0])
+
+            binding.tvQuestionHeader.text = "Вопрос ${index + 1}"
+
+            binding.radioGroup.removeAllViews()
+            val options = questionPair.second.shuffled()
+            options.forEach { option ->
+                val radioButton = RadioButton(context).apply {
+                    text = option
+                    id = View.generateViewId()
+                    textSize = 16f
+                    setTextColor(context?.let { ContextCompat.getColor(it, android.R.color.white) } ?: android.graphics.Color.WHITE)
+                }
+                binding.radioGroup.addView(radioButton)
+            }
+            Log.d("TestFragment", "Displayed question $index: '${questionPair.first}', options=$options")
+        } else {
+            showResult()
+        }
+    }
+
+    private fun checkAnswer() {
+        val selectedRadioButtonId = binding.radioGroup.checkedRadioButtonId
+        if (selectedRadioButtonId == -1) {
+            Toast.makeText(context, "Выберите ответ", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val selectedRadioButton = binding.radioGroup.findViewById<RadioButton>(selectedRadioButtonId)
+        val userAnswer = selectedRadioButton.text.toString().lowercase()
+        val correctAnswer = (binding.questionText.tag as? Pair<*, *>)?.second as? String ?: ""
+        if (userAnswer == correctAnswer.lowercase()) {
+            score++
+        }
+
+        Log.d("TestFragment", "Checked answer: userAnswer='$userAnswer', correctAnswer='$correctAnswer', score=$score")
+
+        binding.radioGroup.clearCheck()
+        displayQuestion(((binding.questionText.tag as? Pair<*, *>)?.first as? Int ?: 0) + 1)
+    }
+
+    private fun showResult() {
+        val normalizedTechniqueName = when (techniqueName) {
+            "DiagonalReadingTechnique" -> "Чтение по диагонали"
+            "KeywordSearchTechnique" -> "Поиск ключевых слов"
+            "BlockReadingTechnique" -> "Чтение блоками"
+            "SentenceReverseTechnique" -> "Предложения наоборот"
+            "WordReverseTechnique" -> "Слова наоборот"
+            "PointerMethodTechnique" -> "Метод указки"
+            else -> techniqueName
+        }
+
+        val totalQuestions = when (normalizedTechniqueName) {
+            "Чтение по диагонали" -> TextResources.getDiagonalTexts().getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+            "Поиск ключевых слов" -> TextResources.getKeywordTexts().getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+            else -> TextResources.getOtherTexts()[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+        } ?: 0
+
+        Log.d("TestFragment", "showResult: score=$score, totalQuestions=$totalQuestions, techniqueName='$normalizedTechniqueName'")
+
+        binding.tvQuestionHeader.visibility = View.GONE
+        binding.questionText.text = "Тест завершён! Ваш результат: $score из $totalQuestions"
+        binding.radioGroup.visibility = View.GONE
+        binding.btnSubmit.visibility = View.GONE
+
+        saveTestResult(normalizedTechniqueName, totalQuestions)
+    }
+
+    private fun saveTestResult(normalizedTechniqueName: String, totalQuestions: Int) {
+        val sharedPreferences = requireContext().getSharedPreferences("TestResults", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        val key = "result_$normalizedTechniqueName"
+
+        val existingResultJson = sharedPreferences.getString(key, null)
+        var shouldSave = true
+
+        if (existingResultJson != null) {
+            try {
+                val existingResult = JSONObject(existingResultJson)
+                val existingScore = existingResult.getInt("score")
+                val existingDuration = existingResult.getLong("durationPerWord")
+
+                if (score < existingScore || (score == existingScore && durationPerWord >= existingDuration)) {
+                    shouldSave = false
+                }
+            } catch (e: Exception) {
+                Log.e("TestFragment", "Failed to parse existing result JSON: $existingResultJson", e)
+            }
+        }
+
+        if (shouldSave) {
+            val timestamp = System.currentTimeMillis()
+            val resultJson = """
+                {
+                    "techniqueName": "$normalizedTechniqueName",
+                    "durationPerWord": $durationPerWord,
+                    "score": $score,
+                    "totalQuestions": $totalQuestions,
+                    "timestamp": $timestamp
+                }
+            """
+            editor.putString(key, resultJson)
+            editor.apply()
+            Log.d("TestFragment", "Saved result: key=$key, resultJson=$resultJson")
+        } else {
+            Log.d("TestFragment", "Skipped saving: new result (score=$score, duration=$durationPerWord) not better than existing")
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}package com.example.scorochenie
+
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import com.example.scorochenie.ui.ExercisesFragment
+import com.example.scorochenie.ui.MaterialsFragment
+import com.example.scorochenie.ui.RatingFragment
+import com.example.scorochenie.domain.TextResources
+import com.google.android.material.bottomnavigation.BottomNavigationView
+
+class MainActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        val bottomNavigation = findViewById<BottomNavigationView>(R.id.bottom_navigation)
+        bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_rating -> {
+                    loadFragment(RatingFragment())
+                    true
+                }
+                R.id.nav_exercises -> {
+                    loadFragment(ExercisesFragment())
+                    true
+                }
+                R.id.nav_materials -> {
+                    loadFragment(MaterialsFragment())
+                    true
+                }
+                else -> false
+            }
+        }
+
+        if (savedInstanceState == null) {
+            loadFragment(RatingFragment())
+        }
+        TextResources.initialize(this)
+    }
+
+    private fun loadFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .commit()
+    }
+}package com.example.scorochenie.domain
+
+data class TestResult(
+    val techniqueName: String,
+    val durationPerWord: Long,
+    val score: Int,
+    val totalQuestions: Int,
+    val timestamp: Long
+)

@@ -16,7 +16,7 @@ import com.example.scorochenie.R
 import kotlin.math.abs
 import android.text.style.StyleSpan
 
-class DiagonalReadingTechnique : ReadingTechnique("DiagonalReadingTechnique", "Чтение по диагонали") {
+class DiagonalReadingTechnique : Technique("DiagonalReadingTechnique", "Чтение по диагонали") {
     private var currentPosition = 0
     private var breakWordIndex = 0
     private var selectedTextIndex = 0

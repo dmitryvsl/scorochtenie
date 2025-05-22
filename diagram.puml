@@ -1,0 +1,188 @@
+@startuml
+skinparam monochrome true
+skinparam classAttributeIconSize 0
+
+' Класс Technique
+abstract class Technique {
+  - name: String
+  - displayName: String
+  + description: SpannableString
+  + startAnimation()
+  + cancelAnimation()
+  .. Companion Object ..
+  - techniqueNames: Map<String, String>
+  + getDisplayName() <<static>>
+  + createTechnique() <<static>>
+  + getAllTechniques() <<static>>
+}
+
+' Класс DiagonalReadingTechnique
+class DiagonalReadingTechnique {
+  - currentPosition: Int
+  - breakWordIndex: Int
+  - selectedTextIndex: Int
+  - fullText: String
+  - animator: ValueAnimator?
+  - handler: Handler
+  - isAnimationActive: Boolean
+  + description: SpannableString
+  + startAnimation()
+  + cancelAnimation()
+  - showNextTextPart()
+  - startDiagonalAnimation()
+  - highlightWordAtPosition(): Int
+  - clearHighlight()
+}
+
+' Класс KeywordSearchTechnique
+class KeywordSearchTechnique {
+  - currentWordIndex: Int
+  - selectedTextIndex: Int
+  - fullText: String
+  - animator: ValueAnimator?
+  - currentPartWords: List<String>
+  - currentPartText: String
+  - scrollView: ScrollView?
+  - lastScrollY: Int
+  - handler: Handler
+  - isAnimationActive: Boolean
+  + description: SpannableString
+  + startAnimation()
+  + cancelAnimation()
+  - showNextTextPart()
+  - animateNextWord()
+  - highlightWord()
+  - startWordAnimation()
+  - getWordStartIndex(): Int
+}
+
+' Класс SentenceReverseTechnique
+class SentenceReverseTechnique {
+  - currentSentenceIndex: Int
+  - currentWordIndexInSentence: Int
+  - selectedTextIndex: Int
+  - fullText: String
+  - currentPosition: Int
+  - animator: ValueAnimator?
+  - sentences: List<List<String>>
+  - sentenceStartIndices: List<Int>
+  - scrollView: ScrollView?
+  - lastScrollY: Int
+  - handler: Handler
+  - isAnimationActive: Boolean
+  + description: SpannableString
+  + startAnimation()
+  + cancelAnimation()
+  - showText()
+  - parseSentences(): List<List<String>>
+  - calculateSentenceStartIndices(): List<Int>
+  - reverseSentences(): String
+  - animateNextWord()
+  - highlightWord()
+  - findWordStartIndex(): Int
+  - startWordAnimation()
+}
+
+' Класс WordReverseTechnique
+class WordReverseTechnique {
+  - currentWordIndex: Int
+  - selectedTextIndex: Int
+  - fullText: String
+  - currentPartText: String
+  - animator: ValueAnimator?
+  - allWords: List<String>
+  - scrollView: ScrollView?
+  - lastScrollY: Int
+  - handler: Handler
+  - isAnimationActive: Boolean
+  + description: SpannableString
+  + startAnimation()
+  + cancelAnimation()
+  - showNextTextPart()
+  - reverseWords(): String
+  - animateNextWord()
+  - highlightWord()
+  - getWordPosition(): Pair<Int, String>
+  - startWordAnimation()
+}
+
+' Класс BlockReadingTechnique
+class BlockReadingTechnique {
+  - currentBlockIndex: Int
+  - selectedTextIndex: Int
+  - fullText: String
+  - animator: ValueAnimator?
+  - currentPartText: String
+  - lineCount: Int
+  - lines: List<IntRange>
+  - scrollView: ScrollView?
+  - lastScrollY: Int
+  - handler: Handler
+  - isAnimationActive: Boolean
+  + description: SpannableString
+  + startAnimation()
+  + cancelAnimation()
+  - showNextTextPart()
+  - animateNextBlock()
+  - highlightBlock(): Triple<Int, Int, Int>
+  - startBlockAnimation()
+}
+
+' Класс PointerMethodTechnique
+class PointerMethodTechnique {
+  - currentWordIndex: Int
+  - selectedTextIndex: Int
+  - fullText: String
+  - animator: ValueAnimator?
+  - currentPartWords: List<String>
+  - currentPartText: String
+  - scrollView: ScrollView?
+  - lastScrollY: Int
+  - handler: Handler
+  - isAnimationActive: Boolean
+  + description: SpannableString
+  + startAnimation()
+  + cancelAnimation()
+  - showNextTextPart()
+  - animateNextWord()
+  - highlightWord()
+  - startWordAnimation()
+  - getWordStartIndex(): Int
+}
+
+
+' Объект TextResources
+class TextResources {
+  - diagonalTexts: List<DiagonalTextData>
+  - keywordTexts: List<KeywordTextData>
+  - otherTexts: Map<String, List<TextData>>
+  + initialize() <<static>>
+  + getDiagonalTexts() <<static>>
+  + getKeywordTexts() <<static>>
+  + getOtherTexts() <<static>>
+}
+
+' Внешние зависимости
+class DiagonalLineView
+
+' Отношения
+Technique <|-- DiagonalReadingTechnique
+Technique <|-- KeywordSearchTechnique
+Technique <|-- SentenceReverseTechnique
+Technique <|-- WordReverseTechnique
+Technique <|-- BlockReadingTechnique
+Technique <|-- PointerMethodTechnique
+
+DiagonalReadingTechnique --> TextResources : uses
+KeywordSearchTechnique --> TextResources : uses
+SentenceReverseTechnique --> TextResources : uses
+WordReverseTechnique --> TextResources : uses
+BlockReadingTechnique --> TextResources : uses
+PointerMethodTechnique --> TextResources : uses
+
+DiagonalReadingTechnique --> DiagonalLineView : uses
+
+' Зависимости от Android-классов (оставлены для полноты, но не детализированы)
+
+hide empty members
+@enduml

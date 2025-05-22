@@ -16,7 +16,7 @@ import androidx.core.animation.addListener
 import androidx.core.content.ContextCompat
 import com.example.scorochenie.R
 
-class KeywordSearchTechnique : ReadingTechnique("KeywordSearchTechnique", "Поиск ключевых слов") {
+class KeywordSearchTechnique : Technique("KeywordSearchTechnique", "Поиск ключевых слов") {
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""

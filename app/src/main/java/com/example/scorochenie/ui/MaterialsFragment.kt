@@ -44,7 +44,7 @@ class MaterialsFragment : Fragment() {
         recyclerView.addItemDecoration(dividerItemDecoration)
 
         val techniques = techniqueNames.map { name ->
-            Technique(name, Technique.getDisplayName(name)).also {
+            Technique.createTechnique(name).also {
                 Log.d("MaterialsFragment", "Technique created: name=${it.name}, displayName=${it.displayName}")
             }
         }

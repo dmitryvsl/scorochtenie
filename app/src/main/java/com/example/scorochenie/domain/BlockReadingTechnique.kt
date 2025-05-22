@@ -14,7 +14,7 @@ import androidx.core.animation.addListener
 import kotlin.math.min
 import android.text.style.StyleSpan
 
-class BlockReadingTechnique : ReadingTechnique("BlockReadingTechnique", "Чтение блоками") {
+class BlockReadingTechnique : Technique("BlockReadingTechnique", "Чтение блоками") {
     private var currentBlockIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""

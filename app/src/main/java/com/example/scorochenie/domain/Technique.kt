@@ -4,21 +4,15 @@ import android.text.SpannableString
 import android.view.View
 import android.widget.TextView
 
-open class Technique(val name: String, val displayName: String) {
-    open val description: SpannableString
-        get() = SpannableString("Описание для $displayName недоступно")
-
-    open fun startAnimation(
+abstract class Technique(val name: String, val displayName: String) {
+    abstract val description: SpannableString
+    abstract fun startAnimation(
         textView: TextView,
         guideView: View,
         durationPerWord: Long,
         selectedTextIndex: Int,
         onAnimationEnd: () -> Unit
-    ) {
-        textView.text = "Анимация для $displayName недоступна"
-        guideView.visibility = View.INVISIBLE
-        onAnimationEnd()
-    }
+    )
 
     open fun cancelAnimation() {}
 
@@ -36,7 +30,7 @@ open class Technique(val name: String, val displayName: String) {
             return techniqueNames[name] ?: name
         }
 
-        fun createTechnique(name: String): ReadingTechnique {
+        fun createTechnique(name: String): Technique {
             val displayName = getDisplayName(name)
             return when (name) {
                 "BlockReadingTechnique" -> BlockReadingTechnique()
@@ -45,7 +39,7 @@ open class Technique(val name: String, val displayName: String) {
                 "PointerMethodTechnique" -> PointerMethodTechnique()
                 "SentenceReverseTechnique" -> SentenceReverseTechnique()
                 "WordReverseTechnique" -> WordReverseTechnique()
-                else -> object : ReadingTechnique("UnknownTechnique", displayName) {
+                else -> object : Technique("UnknownTechnique", displayName) {
                     override val description: SpannableString
                         get() = SpannableString("Описание для этой техники недоступно")
 
@@ -69,7 +63,7 @@ open class Technique(val name: String, val displayName: String) {
         }
 
         fun getAllTechniques(): List<Technique> {
-            return techniqueNames.map { Technique(it.key, it.value) }
+            return techniqueNames.keys.map { createTechnique(it) }
         }
     }
 }

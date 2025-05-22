@@ -1,0 +1,179 @@
+@startuml
+skinparam monochrome true
+skinparam classAttributeIconSize 0
+
+' Класс MainActivity
+class MainActivity {
+  + onCreate()
+  - loadFragment()
+}
+
+' Класс ExercisesFragment
+class ExercisesFragment {
+  + onCreateView()
+  + onViewCreated()
+  - showHelpDialog()
+  - navigateToSpeedSelection()
+}
+
+' Класс MaterialsFragment
+class MaterialsFragment {
+  - recyclerView: RecyclerView
+  - techniqueAdapter: TechniqueAdapter
+  - techniqueNames: List<String>
+  + onCreateView()
+  + onViewCreated()
+  - showHelpDialog()
+  - onTechniqueClicked()
+}
+
+' Класс RatingFragment
+class RatingFragment {
+  - _binding: FragmentRatingBinding?
+  - adapter: RatingAdapter
+  + onCreateView()
+  + onViewCreated()
+  - showHelpDialog()
+  - loadBestResults()
+  + onDestroyView()
+}
+
+' Класс ReadingTestFragment
+class ReadingTestFragment {
+  - _binding: FragmentReadingTestBinding?
+  - technique: Technique
+  - durationPerWord: Long
+  - techniqueName: String
+  - selectedTextIndex: Int
+  + newInstance()
+  + onCreateView()
+  + onViewCreated()
+  - startReadingAnimation()
+  - navigateToTest()
+  + onDestroyView()
+}
+
+' Класс SpeedSelectionFragment
+class SpeedSelectionFragment {
+  - _binding: FragmentSpeedSelectionBinding?
+  + newInstance()
+  + onCreateView()
+  + onViewCreated()
+  - navigateToReadingTest()
+  + onDestroyView()
+}
+
+' Класс TechniqueAdapter
+class TechniqueAdapter {
+  - techniques: List<Technique>
+  - onItemClick: (Technique) -> Unit
+  + onCreateViewHolder()
+  + onBindViewHolder()
+  + getItemCount()
+}
+
+' Класс TechniqueDetailFragment
+class TechniqueDetailFragment {
+  - technique: Technique
+  - guideView: View
+  - animationTextView: TextView?
+  - scrollView: ScrollView?
+  + newInstance()
+  + onCreateView()
+  + onDestroyView()
+}
+
+' Класс TechniqueSelectionAdapter
+class TechniqueSelectionAdapter {
+  - techniques: List<Technique>
+  - onItemClick: (Technique) -> Unit
+  + onCreateViewHolder()
+  + onBindViewHolder()
+  + getItemCount()
+}
+
+' Класс TestFragment
+class TestFragment {
+  - _binding: FragmentTestBinding?
+  - score: Int
+  - currentTextIndex: Int
+  - techniqueName: String
+  - durationPerWord: Long
+  + newInstance()
+  + onCreateView()
+  + onViewCreated()
+  - displayQuestion()
+  - checkAnswer()
+  - showResult()
+  - saveTestResult()
+  + onDestroyView()
+}
+
+' Класс RatingAdapter
+class RatingAdapter {
+  - results: List<TestResult>
+  + setResults()
+  + onCreateViewHolder()
+  + onBindViewHolder()
+  + getItemCount()
+}
+
+' Класс TestResult
+class TestResult {
+  - techniqueName: String
+  - durationPerWord: Long
+  - score: Int
+  - totalQuestions: Int
+  - timestamp: Long
+}
+
+' Внешние зависимости
+
+class Technique
+
+' Отношения
+ExercisesFragment --|> Fragment
+MaterialsFragment --|> Fragment
+RatingFragment --|> Fragment
+ReadingTestFragment --|> Fragment
+SpeedSelectionFragment --|> Fragment
+TechniqueDetailFragment --|> Fragment
+
+TestFragment --|> Fragment
+
+MainActivity --> ExercisesFragment : creates
+MainActivity --> MaterialsFragment : creates
+MainActivity --> RatingFragment : creates
+MainActivity --> TextResources : uses
+
+ExercisesFragment --> Technique : uses
+ExercisesFragment --> TechniqueSelectionAdapter : creates
+ExercisesFragment --> SpeedSelectionFragment : navigates to
+
+MaterialsFragment --> Technique : uses
+MaterialsFragment --> TechniqueAdapter : creates
+MaterialsFragment --> TechniqueDetailFragment : navigates to
+
+RatingFragment --> RatingAdapter : creates
+RatingFragment --> TestResult : uses
+
+ReadingTestFragment --> Technique : uses
+ReadingTestFragment --> TextResources : uses
+ReadingTestFragment --> TestFragment : navigates to
+
+SpeedSelectionFragment --> ReadingTestFragment : navigates to
+
+TechniqueAdapter --> Technique : uses
+TechniqueSelectionAdapter --> Technique : uses
+
+TechniqueDetailFragment --> Technique : uses
+TechniqueDetailFragment --> TextResources : uses
+
+TestFragment --> TextResources : uses
+TestFragment --> TestResult : uses
+
+RatingAdapter --> TestResult : uses
+RatingAdapter --> Technique : uses
+
+hide empty members
+@enduml

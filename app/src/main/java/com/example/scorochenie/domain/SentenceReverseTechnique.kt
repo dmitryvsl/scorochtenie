@@ -13,7 +13,7 @@ import android.widget.TextView
 import androidx.core.animation.addListener
 import android.text.style.StyleSpan
 
-class SentenceReverseTechnique : ReadingTechnique("SentenceReverseTechnique", "Предложения наоборот") {
+class SentenceReverseTechnique : Technique("SentenceReverseTechnique", "Предложения наоборот") {
     private var currentSentenceIndex = 0
     private var currentWordIndexInSentence = 0
     private var selectedTextIndex = 0

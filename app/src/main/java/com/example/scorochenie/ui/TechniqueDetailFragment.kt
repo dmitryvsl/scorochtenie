@@ -11,7 +11,6 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.example.scorochenie.R
-import com.example.scorochenie.domain.ReadingTechnique
 import com.example.scorochenie.domain.TextResources
 import com.example.scorochenie.domain.Technique
 import kotlin.random.Random
@@ -29,7 +28,7 @@ class TechniqueDetailFragment : Fragment() {
         }
     }
 
-    private lateinit var technique: ReadingTechnique
+    private lateinit var technique: Technique
     private lateinit var guideView: View
     private var animationTextView: TextView? = null
     private var scrollView: ScrollView? = null

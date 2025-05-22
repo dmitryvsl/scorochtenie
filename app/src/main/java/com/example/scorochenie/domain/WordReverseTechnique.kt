@@ -13,7 +13,7 @@ import android.widget.TextView
 import androidx.core.animation.addListener
 import android.text.style.StyleSpan
 
-class WordReverseTechnique : ReadingTechnique("WordReverseTechnique", "Слова наоборот") {
+class WordReverseTechnique : Technique("WordReverseTechnique", "Слова наоборот") {
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""

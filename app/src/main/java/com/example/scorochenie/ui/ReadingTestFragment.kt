@@ -11,7 +11,6 @@ import androidx.fragment.app.Fragment
 import com.example.scorochenie.R
 import com.example.scorochenie.databinding.FragmentReadingTestBinding
 import com.example.scorochenie.domain.DiagonalReadingTechnique
-import com.example.scorochenie.domain.ReadingTechnique
 import com.example.scorochenie.domain.TextResources
 import com.example.scorochenie.domain.Technique
 import kotlin.random.Random
@@ -33,7 +32,7 @@ class ReadingTestFragment : Fragment() {
 
     private var _binding: FragmentReadingTestBinding? = null
     private val binding get() = _binding!!
-    private lateinit var technique: ReadingTechnique
+    private lateinit var technique: Technique
     private var durationPerWord: Long = 400L
     private var techniqueName: String = ""
     private var selectedTextIndex: Int = 0

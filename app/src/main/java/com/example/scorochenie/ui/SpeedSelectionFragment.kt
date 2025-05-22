@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.example.scorochenie.R
 import com.example.scorochenie.databinding.FragmentSpeedSelectionBinding
+import com.example.scorochenie.domain.Technique
 
 class SpeedSelectionFragment : Fragment() {
 
@@ -39,15 +40,8 @@ class SpeedSelectionFragment : Fragment() {
         // Получаем techniqueName из аргументов
         val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
 
-        val techniqueDisplayName = when (techniqueName) {
-            "BlockReadingTechnique" -> "Чтение \"блоками\""
-            "DiagonalReadingTechnique" -> "Чтение по диагонали"
-            "KeywordSearchTechnique" -> "Поиск ключевых слов"
-            "PointerMethodTechnique" -> "Метод \"указки\""
-            "SentenceReverseTechnique" -> "Предложения наоборот"
-            "WordReverseTechnique" -> "Слова наоборот"
-            else -> techniqueName
-        }
+        // Используем Technique.getDisplayName для получения отображаемого имени
+        val techniqueDisplayName = Technique.getDisplayName(techniqueName)
         binding.tvTechniqueTitle.text = techniqueDisplayName
 
         // Обработчики кнопок скорости

@@ -128,7 +128,6 @@ class TestResult {
 }
 
 ' Внешние зависимости
-
 class Technique
 
 ' Отношения
@@ -138,7 +137,6 @@ RatingFragment --|> Fragment
 ReadingTestFragment --|> Fragment
 SpeedSelectionFragment --|> Fragment
 TechniqueDetailFragment --|> Fragment
-
 TestFragment --|> Fragment
 
 MainActivity --> ExercisesFragment : creates
@@ -161,6 +159,7 @@ ReadingTestFragment --> Technique : uses
 ReadingTestFragment --> TextResources : uses
 ReadingTestFragment --> TestFragment : navigates to
 
+SpeedSelectionFragment --> Technique : uses
 SpeedSelectionFragment --> ReadingTestFragment : navigates to
 
 TechniqueAdapter --> Technique : uses

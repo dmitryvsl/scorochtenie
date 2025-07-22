@@ -28,9 +28,11 @@ class RatingAdapter : RecyclerView.Adapter<RatingAdapter.RatingViewHolder>() {
 
     override fun getItemCount(): Int = results.size
 
-    class RatingViewHolder(private val binding: ItemRatingBinding) : RecyclerView.ViewHolder(binding.root) {
+    class RatingViewHolder(private val binding: ItemRatingBinding) :
+        RecyclerView.ViewHolder(binding.root) {
         fun bind(result: TestResult) {
-            binding.tvTechniqueName.text = TechniqueType.valueOf(result.techniqueName).displayName
+            binding.tvTechniqueName.text =
+                TechniqueType.entries.first { it.displayName == result.techniqueName }.displayName
             binding.tvSpeed.text = "Скорость: ${result.durationPerWord} слов/мин"
             binding.tvScore.text = "Результат: ${result.score} из ${result.totalQuestions}"
         }

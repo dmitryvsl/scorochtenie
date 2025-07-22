@@ -14,19 +14,24 @@ import com.example.scorochenie.domain.TextResources
 import com.example.scorochenie.databinding.FragmentTestBinding
 import org.json.JSONObject
 import android.util.Log
+import com.example.scorochenie.domain.TechniqueType
 
 class TestFragment : Fragment() {
 
     companion object {
-        private const val ARG_TEXT_INDEX = "textIndex"
-        private const val ARG_TECHNIQUE_NAME = "techniqueName"
-        private const val ARG_DURATION_PER_WORD = "durationPerWord"
+        private const val ARG_TEXT_INDEX = "text_index"
+        private const val ARG_TECHNIQUE_TYPE = "technique_type"
+        private const val ARG_DURATION_PER_WORD = "duration_per_word"
 
-        fun newInstance(textIndex: Int, techniqueName: String, durationPerWord: Long): TestFragment {
+        fun newInstance(
+            textIndex: Int,
+            techniqueType: TechniqueType,
+            durationPerWord: Long
+        ): TestFragment {
             return TestFragment().apply {
                 arguments = Bundle().apply {
                     putInt(ARG_TEXT_INDEX, textIndex)
-                    putString(ARG_TECHNIQUE_NAME, techniqueName)
+                    putSerializable(ARG_TECHNIQUE_TYPE, techniqueType)
                     putLong(ARG_DURATION_PER_WORD, durationPerWord)
                 }
             }
@@ -37,7 +42,7 @@ class TestFragment : Fragment() {
     private val binding get() = _binding!!
     private var score = 0
     private var currentTextIndex = 0
-    private var techniqueName: String = ""
+    private lateinit var techniqueType: TechniqueType
     private var durationPerWord: Long = 400L
 
     override fun onCreateView(
@@ -51,28 +56,41 @@ class TestFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        currentTextIndex = arguments?.getInt(ARG_TEXT_INDEX, 0) ?: 0
-        techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
-        durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
-
+        parseArgs()
         displayQuestion(0)
-
         binding.btnSubmit.setOnClickListener {
             checkAnswer()
         }
     }
 
-    private fun displayQuestion(index: Int) {
-        val normalizedTechniqueName = Technique.getDisplayName(techniqueName)
+    private fun parseArgs() {
+        currentTextIndex = arguments?.getInt(ARG_TEXT_INDEX, 0) ?: 0
+        techniqueType = arguments?.getSerializable(ARG_TECHNIQUE_TYPE).let {
+            it as? TechniqueType
+                ?: throw RuntimeException("Can't find argument '${ARG_TECHNIQUE_TYPE}' in fragment 'TestFragment'")
+        }
+        durationPerWord = arguments?.getLong(ARG_DURATION_PER_WORD) ?: 400L
+    }
 
-        val questions = when (normalizedTechniqueName) {
-            "Чтение по диагонали" -> TextResources.getDiagonalTexts().getOrNull(currentTextIndex)?.questionsAndAnswers
-            "Поиск ключевых слов" -> TextResources.getKeywordTexts().getOrNull(currentTextIndex)?.questionsAndAnswers
-            else -> TextResources.getOtherTexts()[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers
+    private fun displayQuestion(index: Int) {
+
+        val questions = when (techniqueType) {
+            TechniqueType.DiagonalReading -> TextResources.getDiagonalTexts()
+                .getOrNull(currentTextIndex)?.questionsAndAnswers
+
+            TechniqueType.KeywordSearch -> TextResources.getKeywordTexts()
+                .getOrNull(currentTextIndex)?.questionsAndAnswers
+
+            else -> TextResources.getOtherTexts()[techniqueType.displayName]?.getOrNull(
+                currentTextIndex
+            )?.questionsAndAnswers
         }
 
         if (questions.isNullOrEmpty()) {
-            Log.e("TestFragment", "No questions found for technique='$normalizedTechniqueName', textIndex=$currentTextIndex")
+            Log.e(
+                "TestFragment",
+                "No questions found for technique='${techniqueType.displayName}', textIndex=$currentTextIndex"
+            )
             binding.tvQuestionHeader.visibility = View.GONE
             binding.questionText.text = "Ошибка: вопросы для этой техники недоступны."
             binding.radioGroup.visibility = View.GONE
@@ -94,7 +112,8 @@ class TestFragment : Fragment() {
                     text = option
                     id = View.generateViewId()
                     textSize = 16f
-                    setTextColor(context?.let { ContextCompat.getColor(it, android.R.color.black) } ?: android.graphics.Color.WHITE)
+                    setTextColor(context?.let { ContextCompat.getColor(it, android.R.color.black) }
+                        ?: android.graphics.Color.WHITE)
                 }
                 binding.radioGroup.addView(radioButton)
             }
@@ -110,7 +129,8 @@ class TestFragment : Fragment() {
             return
         }
 
-        val selectedRadioButton = binding.radioGroup.findViewById<RadioButton>(selectedRadioButtonId)
+        val selectedRadioButton =
+            binding.radioGroup.findViewById<RadioButton>(selectedRadioButtonId)
         val userAnswer = selectedRadioButton.text.toString().lowercase()
         val correctAnswer = (binding.questionText.tag as? Pair<*, *>)?.second as? String ?: ""
         if (userAnswer == correctAnswer.lowercase()) {
@@ -122,12 +142,17 @@ class TestFragment : Fragment() {
     }
 
     private fun showResult() {
-        val normalizedTechniqueName = Technique.getDisplayName(techniqueName)
 
-        val totalQuestions = when (normalizedTechniqueName) {
-            "Чтение по диагонали" -> TextResources.getDiagonalTexts().getOrNull(currentTextIndex)?.questionsAndAnswers?.size
-            "Поиск ключевых слов" -> TextResources.getKeywordTexts().getOrNull(currentTextIndex)?.questionsAndAnswers?.size
-            else -> TextResources.getOtherTexts()[normalizedTechniqueName]?.getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+        val totalQuestions = when (techniqueType) {
+            TechniqueType.DiagonalReading -> TextResources.getDiagonalTexts()
+                .getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+
+            TechniqueType.KeywordSearch -> TextResources.getKeywordTexts()
+                .getOrNull(currentTextIndex)?.questionsAndAnswers?.size
+
+            else -> TextResources.getOtherTexts()[techniqueType.displayName]?.getOrNull(
+                currentTextIndex
+            )?.questionsAndAnswers?.size
         } ?: 0
 
         binding.tvQuestionHeader.visibility = View.GONE
@@ -135,11 +160,12 @@ class TestFragment : Fragment() {
         binding.radioGroup.visibility = View.GONE
         binding.btnSubmit.visibility = View.GONE
 
-        saveTestResult(normalizedTechniqueName, totalQuestions)
+        saveTestResult(techniqueType.displayName, totalQuestions)
     }
 
     private fun saveTestResult(normalizedTechniqueName: String, totalQuestions: Int) {
-        val sharedPreferences = requireContext().getSharedPreferences("TestResults", Context.MODE_PRIVATE)
+        val sharedPreferences =
+            requireContext().getSharedPreferences("TestResults", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         val key = "result_$normalizedTechniqueName"
 
@@ -156,7 +182,11 @@ class TestFragment : Fragment() {
                     shouldSave = false
                 }
             } catch (e: Exception) {
-                Log.e("TestFragment", "Failed to parse existing result JSON: $existingResultJson", e)
+                Log.e(
+                    "TestFragment",
+                    "Failed to parse existing result JSON: $existingResultJson",
+                    e
+                )
             }
         }
 

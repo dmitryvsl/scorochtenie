@@ -16,7 +16,7 @@ import com.example.scorochenie.R
 import kotlin.math.abs
 import android.text.style.StyleSpan
 
-class DiagonalReadingTechnique : Technique("DiagonalReadingTechnique", "Чтение по диагонали") {
+class DiagonalReadingTechnique : Technique(TechniqueType.DiagonalReading) {
     private var currentPosition = 0
     private var breakWordIndex = 0
     private var selectedTextIndex = 0
@@ -27,14 +27,35 @@ class DiagonalReadingTechnique : Technique("DiagonalReadingTechnique", "Чтен
 
     override val description: SpannableString
         get() {
-            val text = "Чтение по диагонали — это способ быстрого ознакомления с текстом, при котором взгляд скользит сверху вниз по диагонали, захватывая общую структуру и главные элементы.\n" +
-                    "Вместо того чтобы читать каждое слово, вы охватываете страницу бегло, выхватывая смысловые опоры — такие как начальные и конечные слова абзацев, цифры или повторы.\n" +
-                    "Этот метод позволяет быстро получить общее представление о содержании и решить, стоит ли читать подробнее."
+            val text =
+                "Чтение по диагонали — это способ быстрого ознакомления с текстом, при котором взгляд скользит сверху вниз по диагонали, захватывая общую структуру и главные элементы.\n" +
+                        "Вместо того чтобы читать каждое слово, вы охватываете страницу бегло, выхватывая смысловые опоры — такие как начальные и конечные слова абзацев, цифры или повторы.\n" +
+                        "Этот метод позволяет быстро получить общее представление о содержании и решить, стоит ли читать подробнее."
             val spannable = SpannableString(text)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("сверху вниз по диагонали"), text.indexOf("сверху вниз по диагонали") + "сверху вниз по диагонали".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("смысловые опоры"), text.indexOf("смысловые опоры") + "смысловые опоры".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("начальные и конечные"), text.indexOf("начальные и конечные") + "начальные и конечные".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(
+                StyleSpan(android.graphics.Typeface.BOLD),
+                0,
+                techniqueType.displayName.length,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            spannable.setSpan(
+                StyleSpan(android.graphics.Typeface.BOLD),
+                text.indexOf("сверху вниз по диагонали"),
+                text.indexOf("сверху вниз по диагонали") + "сверху вниз по диагонали".length,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            spannable.setSpan(
+                StyleSpan(android.graphics.Typeface.BOLD),
+                text.indexOf("смысловые опоры"),
+                text.indexOf("смысловые опоры") + "смысловые опоры".length,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            spannable.setSpan(
+                StyleSpan(android.graphics.Typeface.BOLD),
+                text.indexOf("начальные и конечные"),
+                text.indexOf("начальные и конечные") + "начальные и конечные".length,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
             return spannable
         }
 
@@ -46,7 +67,9 @@ class DiagonalReadingTechnique : Technique("DiagonalReadingTechnique", "Чтен
         onAnimationEnd: () -> Unit
     ) {
         this.selectedTextIndex = selectedTextIndex
-        fullText = TextResources.getDiagonalTexts().getOrNull(selectedTextIndex)?.text?.replace("\n", " ") ?: ""
+        fullText =
+            TextResources.getDiagonalTexts().getOrNull(selectedTextIndex)?.text?.replace("\n", " ")
+                ?: ""
         currentPosition = 0
         breakWordIndex = 0
         isAnimationActive = true
@@ -83,8 +106,10 @@ class DiagonalReadingTechnique : Technique("DiagonalReadingTechnique", "Чтен
             return
         }
 
-        val currentBreakWords = TextResources.getDiagonalTexts().getOrNull(selectedTextIndex)?.breakWords ?: emptyList()
-        val breakWord = if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
+        val currentBreakWords =
+            TextResources.getDiagonalTexts().getOrNull(selectedTextIndex)?.breakWords ?: emptyList()
+        val breakWord =
+            if (breakWordIndex < currentBreakWords.size) currentBreakWords[breakWordIndex] else ""
         val breakPosition = if (breakWord.isNotEmpty()) {
             val index = fullText.indexOf(breakWord, currentPosition)
             if (index == -1) fullText.length else index + breakWord.length
@@ -103,7 +128,14 @@ class DiagonalReadingTechnique : Technique("DiagonalReadingTechnique", "Чтен
             val diagonalLineView = parent.findViewById<DiagonalLineView>(R.id.diagonal_line_view)
             if (diagonalLineView != null) {
                 diagonalLineView.requestLayout()
-                startDiagonalAnimation(textView, guideView, breakPosition, partText, wordDurationMs, onAnimationEnd)
+                startDiagonalAnimation(
+                    textView,
+                    guideView,
+                    breakPosition,
+                    partText,
+                    wordDurationMs,
+                    onAnimationEnd
+                )
             } else {
                 if (isAnimationActive) onAnimationEnd()
             }
@@ -128,7 +160,14 @@ class DiagonalReadingTechnique : Technique("DiagonalReadingTechnique", "Чтен
         val layout = textView.layout
         if (layout == null) {
             handler.postDelayed({
-                if (isAnimationActive) startDiagonalAnimation(textView, guideView, newPosition, partText, wordDurationMs, onAnimationEnd)
+                if (isAnimationActive) startDiagonalAnimation(
+                    textView,
+                    guideView,
+                    newPosition,
+                    partText,
+                    wordDurationMs,
+                    onAnimationEnd
+                )
             }, 50)
             return
         }
@@ -176,7 +215,12 @@ class DiagonalReadingTechnique : Technique("DiagonalReadingTechnique", "Чтен
         }
     }
 
-    private fun highlightWordAtPosition(textView: TextView, x: Float, y: Float, lastLine: Int): Int {
+    private fun highlightWordAtPosition(
+        textView: TextView,
+        x: Float,
+        y: Float,
+        lastLine: Int
+    ): Int {
         if (!isAnimationActive) return -1
 
         val layout = textView.layout ?: return -1
@@ -200,7 +244,8 @@ class DiagonalReadingTechnique : Technique("DiagonalReadingTechnique", "Чтен
             if (textView.text[offset].isWhitespace()) continue
 
             val charLeft = layout.getPrimaryHorizontal(offset)
-            val charRight = if (offset + 1 < textView.text.length) layout.getPrimaryHorizontal(offset + 1) else charLeft
+            val charRight =
+                if (offset + 1 < textView.text.length) layout.getPrimaryHorizontal(offset + 1) else charLeft
             var charX = (charLeft + charRight) / 2
 
             val distance = abs(charX - expectedX)
@@ -219,7 +264,8 @@ class DiagonalReadingTechnique : Technique("DiagonalReadingTechnique", "Чтен
             while (end < text.length && !text[end].isWhitespace()) end++
 
             val spannable = SpannableString(text)
-            val existingSpans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+            val existingSpans =
+                spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
             for (span in existingSpans) {
                 spannable.removeSpan(span)
             }

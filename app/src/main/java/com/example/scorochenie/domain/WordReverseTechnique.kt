@@ -13,7 +13,7 @@ import android.widget.TextView
 import androidx.core.animation.addListener
 import android.text.style.StyleSpan
 
-class WordReverseTechnique : Technique("WordReverseTechnique", "Слова наоборот") {
+class WordReverseTechnique : Technique(TechniqueType.WordReverse) {
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""
@@ -31,7 +31,7 @@ class WordReverseTechnique : Technique("WordReverseTechnique", "Слова на�
                     "Для применения техники читайте предложения слева направо, переворачивая буквы каждого слова в уме.\n" +
                     "Сосредоточьтесь на разбиении слов на буквы и их правильной сборке, чтобы улучшить навыки чтения."
             val spannable = SpannableString(text)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, techniqueType.displayName.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("читайте предложения слева направо"), text.indexOf("читайте предложения слева направо") + "читайте предложения слева направо".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("переворачивая буквы"), text.indexOf("переворачивая буквы") + "переворачивая буквы".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             return spannable

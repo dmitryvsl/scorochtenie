@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.scorochenie.domain.TestResult
 import com.example.scorochenie.databinding.ItemRatingBinding
 import com.example.scorochenie.domain.Technique
+import com.example.scorochenie.domain.TechniqueType
 
 class RatingAdapter : RecyclerView.Adapter<RatingAdapter.RatingViewHolder>() {
 
@@ -29,7 +30,7 @@ class RatingAdapter : RecyclerView.Adapter<RatingAdapter.RatingViewHolder>() {
 
     class RatingViewHolder(private val binding: ItemRatingBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(result: TestResult) {
-            binding.tvTechniqueName.text = Technique.getDisplayName(result.techniqueName)
+            binding.tvTechniqueName.text = TechniqueType.valueOf(result.techniqueName).displayName
             binding.tvSpeed.text = "Скорость: ${result.durationPerWord} слов/мин"
             binding.tvScore.text = "Результат: ${result.score} из ${result.totalQuestions}"
         }

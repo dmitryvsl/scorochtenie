@@ -14,7 +14,7 @@ import androidx.core.animation.addListener
 import kotlin.math.min
 import android.text.style.StyleSpan
 
-class BlockReadingTechnique : Technique("BlockReadingTechnique", "Чтение блоками") {
+class BlockReadingTechnique : Technique(TechniqueType.BlockReading) {
     private var currentBlockIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""
@@ -32,7 +32,7 @@ class BlockReadingTechnique : Technique("BlockReadingTechnique", "Чтение �
             val text = "Чтение \"блоками\" — это техника скорочтения, при которой текст воспринимается не по отдельным словам, а целыми смысловыми фрагментами. Такой подход помогает быстрее обрабатывать информацию и лучше удерживать общий контекст.\n" +
                     "Сосредоточьтесь на восприятии сразу нескольких строк как единого блока — это развивает навык охватывать больше текста за раз и ускоряет чтение без потери понимания."
             val spannable = SpannableString(text)
-            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, techniqueType.displayName.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("целыми смысловыми фрагментами"), text.indexOf("целыми смысловыми фрагментами") + "целыми смысловыми фрагментами".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(StyleSpan(android.graphics.Typeface.BOLD), text.indexOf("сразу нескольких строк"), text.indexOf("сразу нескольких строк") + "сразу нескольких строк".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             return spannable

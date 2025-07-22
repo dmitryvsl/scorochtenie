@@ -1,7 +1,6 @@
 package com.example.scorochenie.ui
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,16 +12,18 @@ import androidx.fragment.app.Fragment
 import com.example.scorochenie.R
 import com.example.scorochenie.domain.TextResources
 import com.example.scorochenie.domain.Technique
+import com.example.scorochenie.domain.TechniqueType
 import kotlin.random.Random
 
 class TechniqueDetailFragment : Fragment() {
 
     companion object {
-        private const val ARG_TECHNIQUE_NAME = "technique_name"
-        fun newInstance(techniqueName: String): TechniqueDetailFragment {
+        private const val ARG_TECHNIQUE_TYPE = "technique_type"
+
+        fun newInstance(techniqueType: TechniqueType): TechniqueDetailFragment {
             val fragment = TechniqueDetailFragment()
             val args = Bundle()
-            args.putString(ARG_TECHNIQUE_NAME, techniqueName)
+            args.putSerializable(ARG_TECHNIQUE_TYPE, techniqueType)
             fragment.arguments = args
             return fragment
         }
@@ -38,9 +39,13 @@ class TechniqueDetailFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_technique_detail, container, false)
-        val techniqueName = arguments?.getString(ARG_TECHNIQUE_NAME) ?: ""
 
-        technique = Technique.createTechnique(techniqueName)
+        val techniqueType = arguments?.getSerializable(ARG_TECHNIQUE_TYPE).let {
+            it as? TechniqueType
+                ?: throw RuntimeException("Can't find argument '${ARG_TECHNIQUE_TYPE}' in fragment 'TechniqueDetailFragment'")
+        }
+
+        technique = Technique.createTechnique(techniqueType)
 
         val titleTextView = view.findViewById<TextView>(R.id.technique_title)
         val descriptionTextView = view.findViewById<TextView>(R.id.technique_description)
@@ -49,7 +54,7 @@ class TechniqueDetailFragment : Fragment() {
         val startButton = view.findViewById<Button>(R.id.start_button)
         val backButton = view.findViewById<Button>(R.id.back_button)
 
-        titleTextView.text = technique.displayName
+        titleTextView.text = techniqueType.displayName
         descriptionTextView.text = technique.description
 
         guideView = View(requireContext()).apply {
@@ -60,13 +65,15 @@ class TechniqueDetailFragment : Fragment() {
             setBackgroundColor(android.graphics.Color.BLACK)
         }
 
-        val isDiagonalTechnique = technique.displayName == "Чтение по диагонали"
+        val isDiagonalTechnique = techniqueType == TechniqueType.DiagonalReading
         diagonalContainer.visibility = if (isDiagonalTechnique) View.VISIBLE else View.GONE
         scrollContainer.visibility = if (isDiagonalTechnique) View.GONE else View.VISIBLE
-        animationTextView = view.findViewById(if (isDiagonalTechnique) R.id.animation_text_diagonal else R.id.animation_text_scroll)
+        animationTextView =
+            view.findViewById(if (isDiagonalTechnique) R.id.animation_text_diagonal else R.id.animation_text_scroll)
         scrollView = if (isDiagonalTechnique) null else view.findViewById(R.id.scrollView)
 
-        val isAnimationSupported = technique.description.toString() != "Описание для этой техники недоступно"
+        val isAnimationSupported =
+            technique.description.toString() != "Описание для этой техники недоступно"
         if (isAnimationSupported) {
             animationTextView?.visibility = View.GONE
             startButton.visibility = View.VISIBLE
@@ -82,22 +89,28 @@ class TechniqueDetailFragment : Fragment() {
                 } else {
                     diagonalLineView?.visibility = View.GONE
                 }
-                val activeContainer = if (isDiagonalTechnique) diagonalContainer else scrollContainer
+                val activeContainer =
+                    if (isDiagonalTechnique) diagonalContainer else scrollContainer
                 if (guideView.parent == null) {
                     activeContainer.addView(guideView)
                 }
 
                 val defaultDurationPerWord = 200L
-                val textListSize = when (technique.displayName) {
+                val textListSize = when (techniqueType.displayName) {
                     "Чтение по диагонали" -> TextResources.getDiagonalTexts().size
                     "Поиск ключевых слов" -> TextResources.getKeywordTexts().size
-                    else -> TextResources.getOtherTexts()[technique.displayName]?.size ?: 1
+                    else -> TextResources.getOtherTexts()[techniqueType.displayName]?.size ?: 1
                 }
                 val selectedTextIndex = Random.nextInt(textListSize)
 
 
                 animationTextView?.let { textView ->
-                    technique.startAnimation(textView, guideView, defaultDurationPerWord, selectedTextIndex) {
+                    technique.startAnimation(
+                        textView,
+                        guideView,
+                        defaultDurationPerWord,
+                        selectedTextIndex
+                    ) {
                         val parent = guideView.parent as? ViewGroup
                         parent?.removeView(guideView)
                         animationTextView?.visibility = View.VISIBLE

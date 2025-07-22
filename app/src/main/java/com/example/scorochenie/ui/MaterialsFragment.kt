@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.scorochenie.R
 import com.example.scorochenie.domain.Technique
 import android.app.AlertDialog
+import com.example.scorochenie.domain.TechniqueType
 
 class MaterialsFragment : Fragment() {
 
@@ -66,8 +67,8 @@ class MaterialsFragment : Fragment() {
         }
     }
 
-    private fun onTechniqueClicked(technique: Technique) {
-        val detailFragment = TechniqueDetailFragment.newInstance(technique.name)
+    private fun onTechniqueClicked(techniqueType: TechniqueType) {
+        val detailFragment = TechniqueDetailFragment.newInstance(techniqueType)
         parentFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, detailFragment)
             .addToBackStack(null)

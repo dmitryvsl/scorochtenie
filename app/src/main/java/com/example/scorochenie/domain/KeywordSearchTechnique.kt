@@ -16,7 +16,7 @@ import androidx.core.animation.addListener
 import androidx.core.content.ContextCompat
 import com.example.scorochenie.R
 
-class KeywordSearchTechnique : Technique("KeywordSearchTechnique", "Поиск ключевых слов") {
+class KeywordSearchTechnique : Technique(TechniqueType.KeywordSearch) {
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""
@@ -34,7 +34,7 @@ class KeywordSearchTechnique : Technique("KeywordSearchTechnique", "Поиск �
                     "Ключевые элементы текста уже выделены — фокусируйтесь именно на них, чтобы быстрее уловить суть.\n" +
                     "Пропуская второстепенные детали, вы быстрее ориентируетесь в материале и эффективнее воспринимаете основное содержание."
             val spannable = SpannableString(text)
-            spannable.setSpan(StyleSpan(Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), 0, techniqueType.displayName.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("основную смысловую нагрузку"), text.indexOf("основную смысловую нагрузку") + "основную смысловую нагрузку".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("именно на них"), text.indexOf("именно на них") + "именно на них".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("выделены"), text.indexOf("выделены") + "выделены".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)

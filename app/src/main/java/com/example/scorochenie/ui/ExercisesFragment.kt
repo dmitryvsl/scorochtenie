@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.scorochenie.R
 import android.widget.ImageView
 import com.example.scorochenie.domain.Technique
+import com.example.scorochenie.domain.TechniqueType
 
 class ExercisesFragment : Fragment() {
     override fun onCreateView(
@@ -30,7 +31,7 @@ class ExercisesFragment : Fragment() {
         val techniques = Technique.getAllTechniques()
 
         recyclerView.adapter = TechniqueSelectionAdapter(techniques) { technique ->
-            navigateToSpeedSelection(technique.name)
+            navigateToSpeedSelection(technique)
         }
 
         return view
@@ -56,8 +57,8 @@ class ExercisesFragment : Fragment() {
             .show()
     }
 
-    private fun navigateToSpeedSelection(techniqueName: String) {
-        val fragment = SpeedSelectionFragment.newInstance(techniqueName)
+    private fun navigateToSpeedSelection(techniqueType: TechniqueType) {
+        val fragment = SpeedSelectionFragment.newInstance(techniqueType)
         parentFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .addToBackStack(null)

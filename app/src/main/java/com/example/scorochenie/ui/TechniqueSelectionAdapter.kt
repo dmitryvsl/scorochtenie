@@ -6,10 +6,11 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.scorochenie.domain.Technique
+import com.example.scorochenie.domain.TechniqueType
 
 class TechniqueSelectionAdapter(
-    private val techniques: List<Technique>,
-    private val onItemClick: (Technique) -> Unit
+    private val techniques: List<TechniqueType>,
+    private val onItemClick: (TechniqueType) -> Unit
 ) : RecyclerView.Adapter<TechniqueSelectionAdapter.TechniqueViewHolder>() {
 
     class TechniqueViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

@@ -14,7 +14,7 @@ import androidx.core.animation.addListener
 import android.graphics.Typeface
 import android.text.style.StyleSpan
 
-class PointerMethodTechnique : Technique("PointerMethodTechnique", "Метод указки") {
+class PointerMethodTechnique : Technique(TechniqueType.PointerMethod) {
     private var currentWordIndex = 0
     private var selectedTextIndex = 0
     private var fullText: String = ""
@@ -32,7 +32,7 @@ class PointerMethodTechnique : Technique("PointerMethodTechnique", "Метод �
                     "Такая подача помогает удерживать ритм чтения и повышает концентрацию на ключевых фразах.\n" +
                     "Следите за подсвеченными словами и старайтесь воспринимать информацию с их скоростью — это способствует более быстрому и осознанному чтению."
             val spannable = SpannableString(text)
-            spannable.setSpan(StyleSpan(Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            spannable.setSpan(StyleSpan(Typeface.BOLD), 0, techniqueType.displayName.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("визуальное сопровождение текста"), text.indexOf("визуальное сопровождение текста") + "визуальное сопровождение текста".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(StyleSpan(Typeface.BOLD), text.indexOf("за подсвеченными словами"), text.indexOf("за подсвеченными словами") + "за подсвеченными словами".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             return spannable
